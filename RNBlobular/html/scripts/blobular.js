@@ -64,6 +64,7 @@ class Blob {
       `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
     );
 	this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
+
     if (mode === 'join') {
 	  this.joinCircleRMin = 1;
 	  this.joinCircleRMax = 200;
