@@ -46,159 +46,104 @@ function Blob(radius, h, k) {
         .join(''),
     );
   };
-  this.drawSeparation = function(distance, angle) {
-    this.lavaPath.setAttributeNS(
-      null,
-      'transform',
-      `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
-    );
-    this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
-	this.joinCircleR = VISCOSITY;
-
-	var finalK = 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
-	var startK = 0 - this.bigCircleRMax + this.smallCircleR - 1;
-	var differenceK = startK - finalK;
-    var currDifferenceK = this.smallCircleK - finalK;
-	var differencePercentage = currDifferenceK / differenceK;
-
-	this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
-
-	var triangleA = this.bigCircleR + this.joinCircleR; // Side a
-	var triangleB = this.smallCircleR + this.joinCircleR; // Side b
-	var triangleC = Math.abs(this.smallCircleK - 0); // Side c
-	var triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
-	var triangleArea = Math.sqrt(Math.abs(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC))); // Triangle area
-		
-		if (triangleC >= triangleA)
-		{
-			var triangleH = 2 * triangleArea / triangleC; // Triangle height
-			var triangleD = Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)); // Big circle bisection of triangleC
-		}
-		else
-		{
-			var triangleH = 2 * triangleArea / triangleA; // Triangle height
-			var triangleD = Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2)); // Small circle bisection of triangleA
-		}
-
-		var bigCircleTan = triangleH / triangleD;
-		var bigCircleAngle = Math.atan(bigCircleTan);
-		var bigCircleSin = Math.sin(bigCircleAngle);
-		var bigCircleIntersectX = bigCircleSin * this.bigCircleR;
-		var bigCircleCos = Math.cos(bigCircleAngle);
-		var bigCircleIntersectY = bigCircleCos * this.bigCircleR;
-
-		var joinCircleH = 0 + bigCircleSin * (this.bigCircleR + this.joinCircleR);
-		var joinCircleK = 0 - bigCircleCos * (this.bigCircleR + this.joinCircleR);
-
-		var coord1X = 0 - bigCircleIntersectX;
-		var coord1Y = 0 - bigCircleIntersectY;
-		var coord2X = 0 + bigCircleIntersectX;
-		var coord2Y = 0 - bigCircleIntersectY;
-
-		var smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
-		var smallCircleAngle = Math.atan(smallCircleTan);
-		var smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
-		var smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
-
-		
-        const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
-		const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
-        const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
-        const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
-		this.lavaPath.setAttribute(
-          'd',
-          [
-            "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
-            (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
-            (!!x) && "m 0 -" + (crossOverY * 2),
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
-            "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
-            (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
-            (!!isOverlap) && "m 0 " + (crossOverY * 2),
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-          ]
-            .filter(e => !!e)
-            .join(),
-        );
-	};
-	
-	this.drawJoin = function(distance, angle)
-	{
+    //mode = [join, separation]
+    this.drawSomething = function(distance, angle, mode) {
+      if (mode === 'join') {
 		this.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
-		this.lavaPath.setAttributeNS(null, "transform", "translate(" + this.bigCircleH + "," + this.bigCircleK + ") rotate(" + angle + ",0,0)");
-		
-		this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
-
+      }
+      this.lavaPath.setAttributeNS(
+        null,
+        'transform',
+        `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
+      );
+	  this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
+      if (mode === 'join') {
 		this.joinCircleRMin = 1;
 		this.joinCircleRMax = 200;
+      } else if (mode === 'separation') {
+	    this.joinCircleR = VISCOSITY;
+      }
 
-		var startK = 0 - this.bigCircleRMin - this.smallCircleR;
-		var finalK = 0 - this.bigCircleRMax + this.smallCircleR - 1;
-		var differenceK = startK - finalK;
-		var currDifferenceK = this.smallCircleK - finalK;
-		var differencePercentage = currDifferenceK / differenceK;
-		this.joinCircleR = this.joinCircleRMax - (this.joinCircleRMax - this.joinCircleRMin) * differencePercentage;
+      var startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
+	  var finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
+	  var differenceK = startK - finalK;
+      var currDifferenceK = this.smallCircleK - finalK;
+	  var differencePercentage = currDifferenceK / differenceK;
+
+      if (mode === 'join') {
 		this.bigCircleR = this.bigCircleRMax - (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
+		this.joinCircleR = this.joinCircleRMax - (this.joinCircleRMax - this.joinCircleRMin) * differencePercentage;
+      } else if (mode === 'separation') {
+	    this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
+      }
 
-		var triangleA = this.bigCircleR + this.joinCircleR; // Side a
-		var triangleB = this.smallCircleR + this.joinCircleR; // Side b
-		var triangleC = Math.abs(this.smallCircleK); // Side c
-		var triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
-		var triangleArea = Math.sqrt(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC)); // Triangle area
+	  var triangleA = this.bigCircleR + this.joinCircleR; // Side a
+	  var triangleB = this.smallCircleR + this.joinCircleR; // Side b
+	  var triangleC = Math.abs(this.smallCircleK); // Side c
 
-		if (triangleC >= triangleA)
-		{
-			var triangleH = 2 * triangleArea / triangleC; // Triangle height
-			var triangleD = Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)); // Big circle bisection of triangleC
-		}
-		else
-		{
-			var triangleH = 2 * triangleArea / triangleA; // Triangle height
-			var triangleD = Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2)); // Small circle bisection of triangleA
-		}
-		
-		var bigCircleTan = triangleH / triangleD;
-		var bigCircleAngle = Math.atan(bigCircleTan);
-		var bigCircleSin = Math.sin(bigCircleAngle);
-		var bigCircleIntersectX = bigCircleSin * this.bigCircleR;
-		var bigCircleCos = Math.cos(bigCircleAngle);
-		var bigCircleIntersectY = bigCircleCos * this.bigCircleR;
+	  var triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
 
-		var joinCircleH = bigCircleSin * (this.bigCircleR + this.joinCircleR);
-		var joinCircleK = -bigCircleCos * (this.bigCircleR + this.joinCircleR);
+      var triangleArea;
 
-		var coord1X = -bigCircleIntersectX;
-		var coord1Y = -bigCircleIntersectY;
-		var coord2X = bigCircleIntersectX;
-		var coord2Y = -bigCircleIntersectY;
+      if (mode === 'join') {
+		triangleArea = Math.sqrt(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC)); // Triangle area
+      } else if (mode === 'separation') {
+	    triangleArea = Math.sqrt(Math.abs(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC))); // Triangle area
+      }
 
-		const smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
-		const smallCircleAngle = Math.atan(smallCircleTan);
-		const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
-		const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
+      if (triangleC >= triangleA)
+	  {
+	  	var triangleH = 2 * triangleArea / triangleC; // Triangle height
+	  	var triangleD = Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)); // Big circle bisection of triangleC
+	  }
+	  else
+	  {
+	  	var triangleH = 2 * triangleArea / triangleA; // Triangle height
+	  	var triangleD = Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2)); // Small circle bisection of triangleA
+	  }
 
-        const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
-		const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
-        const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
-        const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
-		this.lavaPath.setAttribute(
-          'd',
-          [
-            "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
-            (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
-            (!!x) && "m 0 -" + (crossOverY * 2),
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
-            "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
-            (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
-            (!!isOverlap) && "m 0 " + (crossOverY * 2),
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-            "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-          ]
-            .filter(e => !!e)
-            .join(),
-        );
-	};
+      var bigCircleTan = triangleH / triangleD;
+	  var bigCircleAngle = Math.atan(bigCircleTan);
+	  var bigCircleSin = Math.sin(bigCircleAngle);
+	  var bigCircleIntersectX = bigCircleSin * this.bigCircleR;
+	  var bigCircleCos = Math.cos(bigCircleAngle);
+	  var bigCircleIntersectY = bigCircleCos * this.bigCircleR;
+
+	  var joinCircleH = bigCircleSin * (this.bigCircleR + this.joinCircleR);
+	  var joinCircleK = -bigCircleCos * (this.bigCircleR + this.joinCircleR);
+
+      var coord1X = -bigCircleIntersectX;
+	  var coord1Y = -bigCircleIntersectY;
+	  var coord2X = bigCircleIntersectX;
+	  var coord2Y = -bigCircleIntersectY;
+
+      const smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
+	  const smallCircleAngle = Math.atan(smallCircleTan);
+	  const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
+	  const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
+
+      const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
+	  const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
+      const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
+      const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
+	  this.lavaPath.setAttribute(
+        'd',
+        [
+          "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
+          (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
+          (!!x) && "m 0 -" + (crossOverY * 2),
+          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
+          "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
+          (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
+          (!!isOverlap) && "m 0 " + (crossOverY * 2),
+          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+        ]
+          .filter(e => !!e)
+          .join(),
+      );
+
+    }
 	
 	this.collapse = function(coords)
 	{
@@ -215,7 +160,7 @@ function Blob(radius, h, k) {
 			var distance = -newK - (this.bigCircleRMax - this.smallCircleR);
 			var angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
 			
-			this.drawSeparation(distance, angle);
+			this.drawSomething(distance, angle, 'separation');
 			setTimeout(function()
 				{
 					self.collapse(coords);
@@ -239,7 +184,7 @@ function Blob(radius, h, k) {
 			var distance = -newK - (this.bigCircleRMax - this.smallCircleR);
 			var angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
 			
-			this.drawJoin(distance, angle);
+			this.drawSomething(distance, angle, 'join');
 			setTimeout(function()
 				{
 					self.join(coords);
@@ -319,7 +264,7 @@ function Blob(radius, h, k) {
 							distanceDiff = 1;
 						}
 
-						objRef.drawJoin(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[self.bigCircleH, self.bigCircleK]));
+						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[self.bigCircleH, self.bigCircleK]), 'join');
 
 						document.addEventListener("mousemove", objRef.mousemoveJoin, false);
 						document.addEventListener("mouseup", objRef.mouseupJoin, false);
@@ -349,7 +294,7 @@ function Blob(radius, h, k) {
 							distanceDiff = 1;
 						}
 
-						objRef.drawJoin(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[objRef.smallCircleOriginH, objRef.smallCircleOriginK]));
+						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[objRef.smallCircleOriginH, objRef.smallCircleOriginK]), 'join');
 
 						document.addEventListener("mousemove", objRef.mousemoveJoinAlt, false);
 						document.addEventListener("mouseup", objRef.mouseupJoinAlt, false);
@@ -397,7 +342,7 @@ function Blob(radius, h, k) {
 				distanceDiff = 1;
 			}
 
-			self.drawSeparation(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], coords));
+			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], coords), 'separation');
 		}
 
         suppressPropagation(event);
@@ -431,7 +376,7 @@ function Blob(radius, h, k) {
 				distanceDiff = 1;
 			}
 
-			self.drawJoin(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH + coords[0] - self.mousedownCoords[0], self.smallCircleOriginK + coords[1] - self.mousedownCoords[1]]));
+			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH + coords[0] - self.mousedownCoords[0], self.smallCircleOriginK + coords[1] - self.mousedownCoords[1]]), 'join');
 		}
 
         suppressPropagation(event);
@@ -467,7 +412,7 @@ function Blob(radius, h, k) {
 				distanceDiff = 1;
 			}
 
-			self.drawJoin(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH, self.smallCircleOriginK]));
+			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH, self.smallCircleOriginK]), 'join');
 		}
 
         suppressPropagation(event);
