@@ -38,10 +38,41 @@ class BlobularCompat {
     this.y = 0;
     this.blobs = [];
     this.context = {
-      
+      // [blobId]: { /* context */ },
     };
   }
+  onPointerDown(x, y) {
+    this.x = x;
+    this.y = y;
+    const blob = this.__getBlobs()
+      .map((e, i, arr) => (arr[arr.length - 1 - i]))
+      .reduce(
+        (b, p) => {
+          const id = p
+            .getId();
+          const context = this.__getContext()[id];
+          const { 
+            bigCircleR,
+            bigCircleH,
+            bigCircleK,
+          } = context;
+          const dx = x - bigCircleH;
+          const dy = y - bigCircleK;
+          const dist = Math
+            .sqrt(
+              Math.pow(dx, 2) + Math.pow(dy, 2)
+            );
+          return b || ((dist <= bigCircleR) && p);
+        },
+        null,
+      );
+    console.log('got ',blob);
+  }
   onPointerMoved(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  onPointerUp(x, y) {
     this.x = x;
     this.y = y;
   }
@@ -196,27 +227,76 @@ window.addEventListener(
     );
     svg.addEventListener(
       'mousedown',
-      (e) => {
-        const { clientX: x, clientY: y } = e;
-        b.onPointerMoved(x, y);
-      },
+      e => b.onPointerDown(
+        ...coordsGlobalToSVG(
+          e.clientX,
+          e.clientY,
+        ),
+      ),
       false,
     );
     svg.addEventListener(
       'mousemove',
-      (e) => {
-        const { clientX: x, clientY: y } = e;
-        b.onPointerMoved(x, y);
-      },
+       e => b.onPointerMove(
+        ...coordsGlobalToSVG(
+          e.clientX,
+          e.clientY,
+        ),
+      ),
       false,
     );
     svg.addEventListener(
       'mouseup',
-      (e) => {
-        const { clientX: x, clientY: y } = e;
-        b.onPointerMoved(x, y);
-      },
+      e => b.onPointerUp(
+        ...coordsGlobalToSVG(
+          e.clientX,
+          e.clientY,
+        ),
+      ),
       false,
     );
   },
 );
+
+// TODO: Clean these up.
+const getViewportSize = () => {
+  if (typeof window.innerWidth != 'undefined') {
+	return [
+      window.innerWidth,
+      window.innerHeight,
+    ];
+  } else if (typeof document.documentElement != 'undefined'	&& typeof document.documentElement.clientWidth != 'undefined'	&& document.documentElement.clientWidth != 0) {
+	return [
+      document.documentElement.clientWidth,
+      document.documentElement.clientHeight,
+    ];
+  }
+  return [0, 0];
+};
+
+function coordsGlobalToSVG(globalX, globalY) {
+  const svg = document.getElementsByTagName("svg")[0];
+  const viewBox = svg.viewBox.baseVal;
+  const viewBoxWidth = viewBox.width;
+  const viewBoxHeight = viewBox.height;
+  const viewBoxRatio = viewBoxWidth / viewBoxHeight;
+  const viewportSize = getViewportSize();
+  const viewportRatio = viewportSize[0] / viewportSize[1];
+	
+  if (viewBoxRatio <= viewportRatio) {
+	const viewBoxGlobalWidth = viewBoxWidth * (viewportSize[1] / viewBoxHeight);
+	const viewBoxGlobalOriginX = (viewportSize[0] - viewBoxGlobalWidth) / 2;
+    return [
+      (globalX - viewBoxGlobalOriginX) * (viewBoxHeight / viewportSize[1]),
+      globalY * (viewBoxHeight / viewportSize[1]),
+    ];
+  } else {
+	const viewBoxGlobalHeight = viewBoxHeight * (viewportSize[0] / viewBoxWidth);		
+	const viewBoxGlobalOriginY = (viewportSize[1] - viewBoxGlobalHeight) / 2;
+    return [
+      globalX * (viewBoxWidth / viewportSize[0]),
+      (globalY - viewBoxGlobalOriginY) * (viewBoxWidth / viewportSize[0]),
+    ];
+  }
+  return [0, 0];
+};
