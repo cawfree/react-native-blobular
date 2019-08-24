@@ -18,6 +18,7 @@ class Blob {
     this.mouseupJoin = this.mouseupJoin.bind(this);
     this.mousemoveJoinAlt = this.mousemoveJoinAlt.bind(this);
     this.mouseupJoinAlt = this.mouseupJoinAlt.bind(this);
+    this.reset = this.reset.bind(this);
 
     this.bigCircleR = radius;
     this.bigCircleH = h;
@@ -34,7 +35,11 @@ class Blob {
     this.lavaPath.setAttributeNS(null, "class", "lavaPath");
     this.lavaPath.objRef = this;
   	
-    this.reset = function() {
+    this.lavaPath.addEventListener("mousedown", this.mousedown, false);
+    document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
+    this.reset();
+  }
+  reset() {
     this.lavaPath.setAttributeNS(
       null, 
       'transform',
@@ -42,17 +47,13 @@ class Blob {
     );
     this.lavaPath.setAttribute(
       'd',
-        [
-          `m 0 ${-this.bigCircleR} A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${this.bigCircleR}`,
-          `A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${-this.bigCircleR}`,
-        ]
-          .join(''),
-      );
-    };
+      [
+        `m 0 ${-this.bigCircleR} A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${this.bigCircleR}`,
+        `A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${-this.bigCircleR}`,
+      ]
+        .join(''),
+    );
 
-    this.lavaPath.addEventListener("mousedown", this.mousedown, false);
-    document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
-    this.reset();
   }
   drawSomething(distance, angle, mode) {
     if (mode === 'join') {
