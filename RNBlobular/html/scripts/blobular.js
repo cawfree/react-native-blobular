@@ -64,11 +64,11 @@ function Blob(radius, h, k) {
 	    this.joinCircleR = VISCOSITY;
       }
 
-      var startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
-	  var finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
-	  var differenceK = startK - finalK;
-      var currDifferenceK = this.smallCircleK - finalK;
-	  var differencePercentage = currDifferenceK / differenceK;
+      const startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
+	  const finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
+	  const differenceK = startK - finalK;
+      const currDifferenceK = this.smallCircleK - finalK;
+	  const differencePercentage = currDifferenceK / differenceK;
 
       if (mode === 'join') {
 		this.bigCircleR = this.bigCircleRMax - (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
@@ -77,30 +77,17 @@ function Blob(radius, h, k) {
 	    this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
       }
 
-	  var triangleA = this.bigCircleR + this.joinCircleR; // Side a
-	  var triangleB = this.smallCircleR + this.joinCircleR; // Side b
-	  var triangleC = Math.abs(this.smallCircleK); // Side c
+	  const triangleA = this.bigCircleR + this.joinCircleR; // Side a
+	  const triangleB = this.smallCircleR + this.joinCircleR; // Side b
+	  const triangleC = Math.abs(this.smallCircleK); // Side c
+	  const triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
 
-	  var triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
+      const e = (triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC));
+      const triangleArea = Math.sqrt(mode === 'join' ? e : Math.abs(e));
+      const isBigger = (triangleC >= triangleA);
 
-      var triangleArea;
-
-      if (mode === 'join') {
-		triangleArea = Math.sqrt(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC)); // Triangle area
-      } else if (mode === 'separation') {
-	    triangleArea = Math.sqrt(Math.abs(triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC))); // Triangle area
-      }
-
-      if (triangleC >= triangleA)
-	  {
-	  	var triangleH = 2 * triangleArea / triangleC; // Triangle height
-	  	var triangleD = Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)); // Big circle bisection of triangleC
-	  }
-	  else
-	  {
-	  	var triangleH = 2 * triangleArea / triangleA; // Triangle height
-	  	var triangleD = Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2)); // Small circle bisection of triangleA
-	  }
+      const triangleH = isBigger ? 2 * triangleArea / triangleC : 2 * triangleArea / triangleA;
+      const triangleD = isBigger ? Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)) : Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2));
 
       var bigCircleTan = triangleH / triangleD;
 	  var bigCircleAngle = Math.atan(bigCircleTan);
