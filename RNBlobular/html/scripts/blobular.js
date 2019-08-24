@@ -16,6 +16,8 @@ class Blob {
     this.mousemoveJoin = this.mousemoveJoin.bind(this);
     this.join = this.join.bind(this);
     this.mouseupJoin = this.mouseupJoin.bind(this);
+    this.mousemoveJoinAlt = this.mousemoveJoinAlt.bind(this);
+    this.mouseupJoinAlt = this.mouseupJoinAlt.bind(this);
 
     this.bigCircleR = radius;
     this.bigCircleH = h;
@@ -356,16 +358,6 @@ class Blob {
   }
 }
 
-window.addEventListener(
-  'load',
-  () => new Blob(
-    200,
-    CENTERX,
-    CENTERY,
-  ),
-  false,
-);
-
 const suppressPropagation = (e) => {
   e.stopPropagation();
   e.preventDefault();
@@ -419,3 +411,13 @@ const getViewportSize = () => {
   }
   return [0, 0];
 };
+
+window.addEventListener(
+  'load',
+  () => new Blob(
+    200,
+    CENTERX,
+    CENTERY,
+  ),
+  false,
+);
