@@ -4,50 +4,55 @@ const CENTERX = 400;
 const CENTERY = 300;
 const VISCOSITY = 75;
 
-window.addEventListener(
-  'load',
-  () => new Blob(
-    200,
-    CENTERX,
-    CENTERY,
-  ),
-  false,
-);
+class Blob {
+  constructor(radius, h, k) {
+    this.mousedown = this.mousedown.bind(this);
+    this.drawSomething = this.drawSomething.bind(this);
+    this.collapse = this.collapse.bind(this);
+    this.mouseupSeparate = this.mouseupSeparate.bind(this);
+    this.mousemoveSeparate = this.mousemoveSeparate.bind(this);
+    this.mousemove = this.mousemove.bind(this);
+    this.mouseup = this.mouseup.bind(this);
+    this.mousemoveJoin = this.mousemoveJoin.bind(this);
+    this.join = this.join.bind(this);
+    this.mouseupJoin = this.mouseupJoin.bind(this);
 
-function Blob(radius, h, k) {
-
-  this.bigCircleR = radius;
-  this.bigCircleH = h;
-  this.bigCircleK = k;
-  this.bigCircleOriginH = h;
-  this.bigCircleOriginK = k;
-  this.mousedownCoords = [h, k];
-  this.joinCircleR = VISCOSITY;
-  this.smallCircleR = 50;
-  this.smallCircleH = 0;
-  this.smallCircleK = 0 - this.bigCircleR + this.smallCircleR - 1;
-		
-  this.lavaPath = document.createElementNS(SVG_NS, "path");
-  this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-  this.lavaPath.objRef = this;
-	
-  this.reset = function() {
-  this.lavaPath.setAttributeNS(
-    null, 
-    'transform',
-    `translate(${this.bigCircleH}, ${this.bigCircleK})`,
-  );
-  this.lavaPath.setAttribute(
-    'd',
-      [
-        `m 0 ${-this.bigCircleR} A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${this.bigCircleR}`,
-        `A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${-this.bigCircleR}`,
-      ]
-        .join(''),
+    this.bigCircleR = radius;
+    this.bigCircleH = h;
+    this.bigCircleK = k;
+    this.bigCircleOriginH = h;
+    this.bigCircleOriginK = k;
+    this.mousedownCoords = [h, k];
+    this.joinCircleR = VISCOSITY;
+    this.smallCircleR = 50;
+    this.smallCircleH = 0;
+    this.smallCircleK = 0 - this.bigCircleR + this.smallCircleR - 1;
+  		
+    this.lavaPath = document.createElementNS(SVG_NS, "path");
+    this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+    this.lavaPath.objRef = this;
+  	
+    this.reset = function() {
+    this.lavaPath.setAttributeNS(
+      null, 
+      'transform',
+      `translate(${this.bigCircleH}, ${this.bigCircleK})`,
     );
-  };
-  //mode = [join, separation]
-  this.drawSomething = (distance, angle, mode) => {
+    this.lavaPath.setAttribute(
+      'd',
+        [
+          `m 0 ${-this.bigCircleR} A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${this.bigCircleR}`,
+          `A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${-this.bigCircleR}`,
+        ]
+          .join(''),
+      );
+    };
+
+    this.lavaPath.addEventListener("mousedown", this.mousedown, false);
+    document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
+    this.reset();
+  }
+  drawSomething(distance, angle, mode) {
     if (mode === 'join') {
 	  this.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
     }
@@ -131,7 +136,7 @@ function Blob(radius, h, k) {
         .join(),
     );
   }
-  this.collapse = (coords) => {
+  collapse(coords) {
     const increment = VISCOSITY / 4;
 	const newK = this.smallCircleK + increment;
     if (newK > -this.bigCircleR + this.smallCircleR - 1) {
@@ -151,7 +156,7 @@ function Blob(radius, h, k) {
       );
 	}
   }
-  this.join = (coords) => {
+  join(coords) {
     const increment = 20;
 	const newK = this.smallCircleK + increment;
     if (newK > -this.bigCircleR + this.smallCircleR - 1) {
@@ -172,7 +177,7 @@ function Blob(radius, h, k) {
       );
     }
   }
-  this.mousedown = (event) => {
+  mousedown(event) {
     this.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
 	this.bigCircleOriginH = this.bigCircleH;
 	this.bigCircleOriginK = this.bigCircleK;
@@ -193,9 +198,9 @@ function Blob(radius, h, k) {
 	  document.addEventListener("mouseup", this.mouseupSeparate, false);
 	}
     suppressPropagation(event);
-  };
-  this.mousemove = (event) => {
-	const coords = coordsGlobalToSVG(event.clientX, event.clientY);
+  }
+  mousemove(event) {
+    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 	this.lavaPath.setAttributeNS(null, "class", "lavaPath");
 
 	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
@@ -257,10 +262,9 @@ function Blob(radius, h, k) {
 	}
 	this.reset();
     suppressPropagation(event);
-  };
-	
-  this.mousemoveSeparate = (event) => {
-	const coords = coordsGlobalToSVG(event.clientX, event.clientY);
+  }
+  mousemoveSeparate(event) {
+    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 	const distance = Math.sqrt(Math.pow(coords[0] - this.bigCircleH, 2) + Math.pow(coords[1] - this.bigCircleK, 2));
 	if (distance > this.bigCircleR + this.joinCircleR * 2 + this.smallCircleR) {
 	  const detached = new Blob(this.smallCircleR, coords[0], coords[1]);
@@ -276,8 +280,8 @@ function Blob(radius, h, k) {
 	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], coords), 'separation');
 	}
     suppressPropagation(event);
-  };
-  this.mousemoveJoin = (event) => {
+  }
+  mousemoveJoin(event) {
     const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 	const distance = Math.sqrt(Math.pow(this.smallCircleOriginH + coords[0] - this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.smallCircleOriginK + coords[1] - this.mousedownCoords[1] - this.bigCircleK, 2));
 
@@ -295,8 +299,8 @@ function Blob(radius, h, k) {
 	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH + coords[0] - this.mousedownCoords[0], this.smallCircleOriginK + coords[1] - this.mousedownCoords[1]]), 'join');
 	}
     suppressPropagation(event);
-  };
-  this.mousemoveJoinAlt = (event) => {
+  }
+  mousemoveJoinAlt(event) {
     const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 
 	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
@@ -318,28 +322,28 @@ function Blob(radius, h, k) {
 	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH, this.smallCircleOriginK]), 'join');
 	}
     suppressPropagation(event);
-  };
-  this.mouseup = (event) => {
+  }
+  mouseup(event) {
     this.lavaPath.setAttributeNS(null, "class", "lavaPath");
 	document.removeEventListener("mousemove", this.mousemove, false);
 	document.removeEventListener("mouseup", this.mouseup, false);
     suppressPropagation(event);
-  };
-  this.mouseupSeparate = (event) => {
+  }
+  mouseupSeparate(event) {
     const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 	this.collapse(coords);
 	document.removeEventListener("mousemove", this.mousemoveSeparate, false);
 	document.removeEventListener("mouseup", this.mouseupSeparate, false);
     suppressPropagation(event);
-  };
-  this.mouseupJoin = (event) => {
+  }
+  mouseupJoin(event) {
     const coords = coordsGlobalToSVG(event.clientX, event.clientY);
 	this.join(coords);
 	document.removeEventListener("mousemove", this.mousemoveJoin, false);
 	document.removeEventListener("mouseup", this.mouseupJoin, false);
     suppressPropagation(event);
-  };
-  this.mouseupJoinAlt = (event) => {
+  }
+  mouseupJoinAlt(event) {
     this.join(
       [
         this.smallCircleOriginH,
@@ -349,11 +353,18 @@ function Blob(radius, h, k) {
 	document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
 	document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
     suppressPropagation(event);
-  };
-  this.lavaPath.addEventListener("mousedown", this.mousedown, false);
-  document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
-  this.reset();
-};
+  }
+}
+
+window.addEventListener(
+  'load',
+  () => new Blob(
+    200,
+    CENTERX,
+    CENTERY,
+  ),
+  false,
+);
 
 const suppressPropagation = (e) => {
   e.stopPropagation();
