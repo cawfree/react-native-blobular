@@ -1,21 +1,18 @@
-
 const SVG_NS = "http://www.w3.org/2000/svg";
 const XLINK_NS = "http://www.w3.org/1999/xlink";
 const CENTERX = 400;
 const CENTERY = 300;
-const COLLISION_DETECTION = true;
 const VISCOSITY = 75;
 
-window.addEventListener("load", init, false);
-
-function init()
-{
-	new Blob(200, CENTERX, CENTERY);
-	new Slider(document.getElementById("viscosity"), 30, viscosity);
-	new Slider(document.getElementById("colour"), 0, colour);
-	document.getElementById("join").addEventListener("click", toggleJoin, false);
-	document.addEventListener("mousedown", removeInstructions, true);
-};
+window.addEventListener(
+  'load',
+  () => new Blob(
+    200,
+    CENTERX,
+    CENTERY,
+  ),
+  false,
+);
 
 function Blob(radius, h, k)
 {
@@ -103,7 +100,7 @@ function Blob(radius, h, k)
 		
 		if (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK)
 		{
-			var crossOverY = circleYFromX(joinCircleH, joinCircleK, this.joinCircleR, 0);
+			var crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
 			
 			lavaPathD += "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY);
 			lavaPathD += "m 0 -" + (crossOverY * 2);
@@ -192,7 +189,7 @@ function Blob(radius, h, k)
 		
 		if (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK)
 		{
-			var crossOverY = circleYFromX(joinCircleH, joinCircleK, this.joinCircleR, 0);
+			var crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
 			
 			lavaPathD += "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY);
 			lavaPathD += "m 0 -" + (crossOverY * 2);
@@ -312,8 +309,6 @@ function Blob(radius, h, k)
 		self.bigCircleH = self.bigCircleOriginH + coords[0] - self.mousedownCoords[0];
 		self.bigCircleK = self.bigCircleOriginK + coords[1] - self.mousedownCoords[1];
 		
-		if (COLLISION_DETECTION == true)
-		{
 			var paths = document.getElementsByTagName("path");
 
 			for (var i = 0; i < paths.length; i++)
@@ -387,7 +382,6 @@ function Blob(radius, h, k)
 					break;
 				}
 			}
-		}
 		
 		self.reset();
 
@@ -556,190 +550,6 @@ function Blob(radius, h, k)
 	this.reset();
 };
 
-
-
-
-function Slider(sliderElement, sliderIndicatorX, changeFunction)
-{
-	var self = this;
-	
-	var MAX_VALUE = 136;
-	var HALF_INDICATOR_SIZE = 7;
-	
-	this.sliderIndicator = sliderElement.getElementsByTagName("div")[0];
-	this.sliderIndicatorX = sliderIndicatorX;
-	this.mousedownX = 0;
-	
-	this.setIndicatorPosition = function(posX)
-	{
-		if (posX < 0)
-		{
-			posX = 0;
-		}
-		
-		if (posX > MAX_VALUE)
-		{
-			posX = MAX_VALUE;
-		}
-		
-		self.sliderIndicator.style.left = posX + "px";
-		
-		changeFunction(posX, posX / MAX_VALUE);
-		
-		return posX;
-	};
-	
-	this.clickSlider = function(event)
-	{
-		if (event.target == event.currentTarget)
-		{
-			/* Opera element-specific ordinate */
-			var clickX = event.offsetX;
-
-			if (typeof clickX == "undefined")
-			{
-				/* Firefox element-specific ordinate */
-				clickX = event.layerX;
-			}
-
-			var newLeft = clickX - HALF_INDICATOR_SIZE;
-			newLeft = self.setIndicatorPosition(newLeft);
-			self.sliderIndicatorX = newLeft;
-		}
-	};
-	
-	this.mousedownIndicator = function(event)
-	{
-		self.mousedownX = event.clientX;
-		
-		document.addEventListener("mousemove", self.mousemoveIndicator, false);
-		document.addEventListener("mouseup", self.mouseupIndicator, false);
-		
-		event.stopPropagation();
-		event.preventDefault();
-	};
-	
-	this.mouseupIndicator = function(event)
-	{
-		var newLeft = self.sliderIndicatorX + event.clientX - self.mousedownX;
-		newLeft = self.setIndicatorPosition(newLeft);
-		self.sliderIndicatorX = newLeft;
-		
-		document.removeEventListener("mousemove", self.mousemoveIndicator, false);
-		document.removeEventListener("mouseup", self.mouseupIndicator, false);
-
-		event.stopPropagation();
-		event.preventDefault();
-	};
-	
-	this.mousemoveIndicator = function(event)
-	{
-		var newLeft = self.sliderIndicatorX + event.clientX - self.mousedownX;
-		
-		self.setIndicatorPosition(newLeft);
-		
-		event.stopPropagation();
-		event.preventDefault();
-	};
-
-	sliderElement.addEventListener("click", this.clickSlider, false);	
-	this.sliderIndicator.addEventListener("mousedown", this.mousedownIndicator, false);
-
-	this.setIndicatorPosition(sliderIndicatorX);
-};
-
-
-
-
-function viscosity(posX, percentX)
-{
-	VISCOSITY = 10 + Math.round(percentX * 400);
-};
-
-
-
-
-function colour(posX, percentX)
-{
-	var colorArray = [[0, 68, 105], [0, 102, 0], [150, 30, 60]];
-	var svgNode = document.getElementsByTagName("svg")[0];
-	var bodyNode = document.getElementsByTagName("body")[0];
-	var maxSteps = 100;
-	var currStep = Math.round(percentX % (1 / (colorArray.length - 1)) / (1 / (colorArray.length - 1)) * maxSteps);
-	var currIndex = Math.floor(percentX * (colorArray.length - 1));
-	
-	var targetIndex = currIndex + 1;
-	
-	if (targetIndex >= colorArray.length)
-	{
-		targetIndex = 0;
-	}
-	
-	bodyNode.style.backgroundColor = arrayToRGB(colorArray[0]);
-
-	var rgbArray = [];
-
-	rgbArray[0] = colorArray[currIndex][0] + (colorArray[targetIndex][0] - colorArray[currIndex][0]) / maxSteps * currStep;
-	rgbArray[1] = colorArray[currIndex][1] + (colorArray[targetIndex][1] - colorArray[currIndex][1]) / maxSteps * currStep;
-	rgbArray[2] = colorArray[currIndex][2] + (colorArray[targetIndex][2] - colorArray[currIndex][2]) / maxSteps * currStep;
-
-	bodyNode.style.backgroundColor = arrayToRGB(rgbArray);
-	svgNode.setAttributeNS(null, "fill", arrayToRGB([rgbArray[0] + 51, rgbArray[1] + 51, rgbArray[2] + 51]));
-};
-
-
-
-
-function toggleJoin(event)
-{
-	if (COLLISION_DETECTION == true)
-	{
-		COLLISION_DETECTION = false;
-		this.setAttribute("class", "");
-	}
-	else
-	{
-		COLLISION_DETECTION = true;
-		this.setAttribute("class", "on");
-	}
-};
-
-
-
-
-function removeInstructions()
-{
-	document.removeEventListener("mousedown", removeInstructions, true);
-	document.getElementById("instructions").style.opacity = "0.99";
-	
-	animateRemoveInstructions();
-};
-
-
-
-
-function animateRemoveInstructions()
-{
-	var INCREMENT = 0.05;
-	var instructions = document.getElementById("instructions");
-	var opacity = parseFloat(instructions.style.opacity);
-	opacity -= INCREMENT;
-	
-	if (opacity <= 0)
-	{
-		instructions.parentNode.removeChild(instructions);
-	}
-	else
-	{
-		instructions.style.opacity = opacity;
-		
-		setTimeout(animateRemoveInstructions, 25);
-	}
-};
-
-
-
-
 function coordsGlobalToSVG(globalX, globalY)
 {
 	var svgCoords = [0, 0];
@@ -771,50 +581,24 @@ function coordsGlobalToSVG(globalX, globalY)
 	return svgCoords;
 };
 
+const getCircleYForX = (h, r, x) => Math.sqrt(Math.pow(r, 2) - Math.pow(x - h, 2));
 
-
-
-function circleYFromX (h, k, r, x)
-{
-	return Math.sqrt(Math.pow(r, 2) - Math.pow(x - h, 2));
-};
-
-
-
-
-function calculateAngle(origin, point)
-{
-	var tan = (point[1] - origin[1]) / (point[0] - origin[0]);
-	var angle = Math.atan(tan) / Math.PI * 180 + 90;
-
-	if (point[0] < origin[0])
-	{
-		angle += 180;
-	}
-	
-	return angle;
+const calculateAngle = (origin, point) => {
+  const angle = Math.atan((point[1] - origin[1]) / (point[0] - origin[0])) / Math.PI * 180 + 90;
+  return angle + ((point[0] < origin[0]) ? 180 : 0);
 }
 
-
-
-
-const arrayToRGB = (rgbArray) => {
-  return "rgb(" + parseInt(rgbArray[0], 10) + "," + parseInt(rgbArray[1], 10) + "," + parseInt(rgbArray[2], 10) + ")";
-};
-
-
-
 const getViewportSize = () => {
-	var size = [0, 0];
-	
-	if (typeof window.innerWidth != 'undefined')
-	{
-		size = [window.innerWidth, window.innerHeight];
-	}
-	else if (typeof document.documentElement != 'undefined'	&& typeof document.documentElement.clientWidth != 'undefined'	&& document.documentElement.clientWidth != 0)
-	{
-		size = [document.documentElement.clientWidth, document.documentElement.clientHeight];
-	}
-	
-	return size;
+  if (typeof window.innerWidth != 'undefined') {
+	return [
+      window.innerWidth,
+      window.innerHeight,
+    ];
+  } else if (typeof document.documentElement != 'undefined'	&& typeof document.documentElement.clientWidth != 'undefined'	&& document.documentElement.clientWidth != 0) {
+	return [
+      document.documentElement.clientWidth,
+      document.documentElement.clientHeight,
+    ];
+  }
+  return [0, 0];
 };
