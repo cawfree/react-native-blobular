@@ -132,318 +132,238 @@ function Blob(radius, h, k) {
     );
   }
 	
-	this.collapse = (coords) => {
-		const increment = VISCOSITY / 4;
-		const newK = this.smallCircleK + increment;
-		
-		if (newK > -this.bigCircleR + this.smallCircleR - 1) {
-			this.bigCircleR = this.bigCircleRMax;
-			this.reset();
-		} else {
-			const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-			const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
-			
-			this.drawSomething(
-              distance,
-              angle, 
-              'separation',
-            );
-
-            setTimeout(
-              () => this.collapse(coords),
-              25,
-            );
-		}
-	}
-	
-	this.join = (coords) => {
-	  const increment = 20;
-	  const newK = this.smallCircleK + increment;
-      if (newK > -this.bigCircleR + this.smallCircleR - 1) {
-        this.bigCircleR = this.bigCircleRMax;
-    	this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-    	this.reset();
-      } else {
-    	const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-    	const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
-    	this.drawSomething(distance, angle, 'join');
-        setTimeout(
-          () => this.join(coords),
-          25,
-        );
-      }
-	}
-	
-	this.mousedown = (event) => {
-		this.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
-
-		this.bigCircleOriginH = this.bigCircleH;
-		this.bigCircleOriginK = this.bigCircleK;
-
-		this.originDistance = Math.sqrt(Math.pow(this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.mousedownCoords[1] - this.bigCircleK, 2));
-		
-		this.smallCircleR = this.bigCircleR - this.originDistance;
-
-		 /* If click in centre, move blob instead of separating */
-		if (this.originDistance < 20)
-		{
-			document.addEventListener("mousemove", this.mousemove, false);
-			document.addEventListener("mouseup", this.mouseup, false);
-		}
-		else
-		{
-			var bigCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
-			var smallCircleArea = Math.PI * Math.pow(this.smallCircleR, 2);
-			var afterCircleArea = bigCircleArea - smallCircleArea;
-			
-			this.bigCircleRMax = this.bigCircleR;
-			this.bigCircleRMin = Math.sqrt(afterCircleArea / Math.PI);
-			
-			document.addEventListener("mousemove", this.mousemoveSeparate, false);
-			document.addEventListener("mouseup", this.mouseupSeparate, false);
-		}
-
-        suppressPropagation(event);
-	};
-	
-	this.mousemove = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		
-		this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-
-		this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
-		this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
-		
-			var paths = document.getElementsByTagName("path");
-
-			for (var i = 0; i < paths.length; i++)
-			{
-				var objRef = paths[i].objRef;
-
-				var distance = Math.sqrt(Math.pow(this.bigCircleH - objRef.bigCircleH, 2) + Math.pow(this.bigCircleK - objRef.bigCircleK, 2))
-
-				if (paths[i] != this.lavaPath && distance < this.bigCircleR + objRef.bigCircleR)
-				{
-					var bigCircleArea = Math.PI * Math.pow(objRef.bigCircleR, 2);
-					var smallCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
-					var afterCircleArea = bigCircleArea + smallCircleArea;
-
-					if (this.bigCircleR < objRef.bigCircleR)
-					{
-						objRef.bigCircleRMin = objRef.bigCircleR;
-						objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-						objRef.smallCircleR = this.bigCircleR;
-						objRef.smallCircleOriginH = this.bigCircleOriginH;
-						objRef.smallCircleOriginK = this.bigCircleOriginK;
-						objRef.mousedownCoords = this.mousedownCoords;
-
-						var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
-
-						if (distanceDiff < 1)
-						{
-							distanceDiff = 1;
-						}
-
-						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[this.bigCircleH, this.bigCircleK]), 'join');
-
-						document.addEventListener("mousemove", objRef.mousemoveJoin, false);
-						document.addEventListener("mouseup", objRef.mouseupJoin, false);
-						document.removeEventListener("mousemove", this.mousemove, false);
-						document.removeEventListener("mouseup", this.mouseup, false);
-
-						this.lavaPath.parentNode.removeChild(this.lavaPath);
-					}
-					else
-					{
-						objRef.bigCircleRMin = this.bigCircleR;
-						objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-						objRef.smallCircleR = objRef.bigCircleR;
-						objRef.smallCircleOriginH = objRef.bigCircleH;
-						objRef.smallCircleOriginK = objRef.bigCircleK;
-						objRef.bigCircleR = this.bigCircleR;
-						objRef.bigCircleH = this.bigCircleH;
-						objRef.bigCircleK = this.bigCircleK;
-						objRef.bigCircleOriginH = this.bigCircleOriginH;
-						objRef.bigCircleOriginK = this.bigCircleOriginK;
-						objRef.mousedownCoords = this.mousedownCoords;
-
-						var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
-
-						if (distanceDiff < 1)
-						{
-							distanceDiff = 1;
-						}
-
-						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[objRef.smallCircleOriginH, objRef.smallCircleOriginK]), 'join');
-
-						document.addEventListener("mousemove", objRef.mousemoveJoinAlt, false);
-						document.addEventListener("mouseup", objRef.mouseupJoinAlt, false);
-						document.removeEventListener("mousemove", this.mousemove, false);
-						document.removeEventListener("mouseup", this.mouseup, false);
-
-						this.lavaPath.parentNode.removeChild(this.lavaPath);
-					}
-
-					break;
-				}
-			}
-		
-		this.reset();
-
-        suppressPropagation(event);
-	};
-	
-	this.mousemoveSeparate = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		
-		var distance = Math.sqrt(Math.pow(coords[0] - this.bigCircleH, 2) + Math.pow(coords[1] - this.bigCircleK, 2));
-
-		if (distance > this.bigCircleR + this.joinCircleR * 2 + this.smallCircleR)
-		{
-			var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
-			detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
-
-			
-			document.addEventListener("mousemove", detached.mousemove, false);
-			document.addEventListener("mouseup", detached.mouseup, false);
-			document.removeEventListener("mousemove", this.mousemoveSeparate, false);
-			document.removeEventListener("mouseup", this.mouseupSeparate, false);
-
-			this.bigCircleR = this.bigCircleRMin;			
-			this.reset();
-		}
-		else
-		{
-			var distanceDiff = distance - this.originDistance;
-
-			if (distanceDiff < 1)
-			{
-				distanceDiff = 1;
-			}
-
-			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], coords), 'separation');
-		}
-
-        suppressPropagation(event);
-	};
-	
-	this.mousemoveJoin = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		
-		var distance = Math.sqrt(Math.pow(this.smallCircleOriginH + coords[0] - this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.smallCircleOriginK + coords[1] - this.mousedownCoords[1] - this.bigCircleK, 2));
-
-		if (distance > this.bigCircleRMin + this.smallCircleR)
-		{
-			var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
-			
-			document.addEventListener("mousemove", detached.mousemove, false);
-			document.addEventListener("mouseup", detached.mouseup, false);
-			document.removeEventListener("mousemove", this.mousemoveJoin, false);
-			document.removeEventListener("mouseup", this.mouseupJoin, false);
-
-			this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-			this.bigCircleR = this.bigCircleRMin;			
-			this.reset();
-		}
-		else
-		{
-			var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
-
-			if (distanceDiff < 1)
-			{
-				distanceDiff = 1;
-			}
-
-			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH + coords[0] - this.mousedownCoords[0], this.smallCircleOriginK + coords[1] - this.mousedownCoords[1]]), 'join');
-		}
-
-        suppressPropagation(event);
-	};
-	
-	this.mousemoveJoinAlt = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-
-		this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
-		this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
-		
-		var distance = Math.sqrt(Math.pow(this.bigCircleH - this.smallCircleOriginH, 2) + Math.pow(this.bigCircleK - this.smallCircleOriginK, 2));
-
-		if (distance > this.bigCircleRMin + this.smallCircleR)
-		{
-			var detached = new Blob(this.smallCircleR, this.smallCircleOriginH, this.smallCircleOriginK);
-			
-			document.addEventListener("mousemove", this.mousemove, false);
-			document.addEventListener("mouseup", this.mouseup, false);
-			document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
-			document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
-
-			this.bigCircleR = this.bigCircleRMin;			
-			this.reset();
-		}
-		else
-		{
-			var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
-
-			if (distanceDiff < 1)
-			{
-				distanceDiff = 1;
-			}
-
-			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH, this.smallCircleOriginK]), 'join');
-		}
-
-        suppressPropagation(event);
-	};
-	
-	this.mouseup = (event) => {
-		this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-		
-		document.removeEventListener("mousemove", this.mousemove, false);
-		document.removeEventListener("mouseup", this.mouseup, false);
-
-        
-        suppressPropagation(event);
-	};
-
-	this.mouseupSeparate = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		this.collapse(coords);
-		
-		document.removeEventListener("mousemove", this.mousemoveSeparate, false);
-		document.removeEventListener("mouseup", this.mouseupSeparate, false);
-
-        suppressPropagation(event);
-	};
-
-	this.mouseupJoin = (event) => {
-		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		this.join(coords);
-		
-		document.removeEventListener("mousemove", this.mousemoveJoin, false);
-		document.removeEventListener("mouseup", this.mouseupJoin, false);
-
-        suppressPropagation(event);
-	};
-
-	this.mouseupJoinAlt = (event) => {
-      this.join(
-        [
-          this.smallCircleOriginH,
-          this.smallCircleOriginK,
-        ],
+  this.collapse = (coords) => {
+    const increment = VISCOSITY / 4;
+	const newK = this.smallCircleK + increment;
+    if (newK > -this.bigCircleR + this.smallCircleR - 1) {
+	  this.bigCircleR = this.bigCircleRMax;
+	  this.reset();
+	} else {
+	  const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
+	  const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
+	  this.drawSomething(
+        distance,
+        angle, 
+        'separation',
       );
 
+      setTimeout(
+        () => this.collapse(coords),
+        25,
+      );
+	}
+  }
+	
+  this.join = (coords) => {
+    const increment = 20;
+	const newK = this.smallCircleK + increment;
+    if (newK > -this.bigCircleR + this.smallCircleR - 1) {
+      this.bigCircleR = this.bigCircleRMax;
+      this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+      this.reset();
+    } else {
+      const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
+      const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
+      this.drawSomething(distance, angle, 'join');
+      setTimeout(
+        () => this.join(coords),
+        25,
+      );
+    }
+  }
+	
+  this.mousedown = (event) => {
+    this.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
+	this.bigCircleOriginH = this.bigCircleH;
+	this.bigCircleOriginK = this.bigCircleK;
+	this.originDistance = Math.sqrt(Math.pow(this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.mousedownCoords[1] - this.bigCircleK, 2));
+	this.smallCircleR = this.bigCircleR - this.originDistance;
+
+	/* If click in centre, move blob instead of separating */
+	if (this.originDistance < 20) {
+	  document.addEventListener("mousemove", this.mousemove, false);
+	  document.addEventListener("mouseup", this.mouseup, false);
+	} else {
+	  const bigCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
+	  const smallCircleArea = Math.PI * Math.pow(this.smallCircleR, 2);
+	  const afterCircleArea = bigCircleArea - smallCircleArea;
+	  this.bigCircleRMax = this.bigCircleR;
+	  this.bigCircleRMin = Math.sqrt(afterCircleArea / Math.PI);
+	  document.addEventListener("mousemove", this.mousemoveSeparate, false);
+	  document.addEventListener("mouseup", this.mouseupSeparate, false);
+	}
+    suppressPropagation(event);
+  };
+  this.mousemove = (event) => {
+	var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+	this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+
+	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
+	this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
+		
+	var paths = document.getElementsByTagName("path");
+
+	for (var i = 0; i < paths.length; i++) {
+	  var objRef = paths[i].objRef;
+	  var distance = Math.sqrt(Math.pow(this.bigCircleH - objRef.bigCircleH, 2) + Math.pow(this.bigCircleK - objRef.bigCircleK, 2))
+	  if (paths[i] != this.lavaPath && distance < this.bigCircleR + objRef.bigCircleR) {
+		var bigCircleArea = Math.PI * Math.pow(objRef.bigCircleR, 2);
+		var smallCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
+		var afterCircleArea = bigCircleArea + smallCircleArea;
+		if (this.bigCircleR < objRef.bigCircleR) {
+		  objRef.bigCircleRMin = objRef.bigCircleR;
+		  objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
+		  objRef.smallCircleR = this.bigCircleR;
+		  objRef.smallCircleOriginH = this.bigCircleOriginH;
+		  objRef.smallCircleOriginK = this.bigCircleOriginK;
+		  objRef.mousedownCoords = this.mousedownCoords;
+		  var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
+
+		  if (distanceDiff < 1) {
+		    distanceDiff = 1;
+		  }
+		  
+          objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[this.bigCircleH, this.bigCircleK]), 'join');
+
+		  document.addEventListener("mousemove", objRef.mousemoveJoin, false);
+		  document.addEventListener("mouseup", objRef.mouseupJoin, false);
+		  document.removeEventListener("mousemove", this.mousemove, false);
+		  document.removeEventListener("mouseup", this.mouseup, false);
+		  this.lavaPath.parentNode.removeChild(this.lavaPath);
+		} else {
+		  objRef.bigCircleRMin = this.bigCircleR;
+		  objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
+		  objRef.smallCircleR = objRef.bigCircleR;
+		  objRef.smallCircleOriginH = objRef.bigCircleH;
+		  objRef.smallCircleOriginK = objRef.bigCircleK;
+		  objRef.bigCircleR = this.bigCircleR;
+		  objRef.bigCircleH = this.bigCircleH;
+		  objRef.bigCircleK = this.bigCircleK;
+		  objRef.bigCircleOriginH = this.bigCircleOriginH;
+		  objRef.bigCircleOriginK = this.bigCircleOriginK;
+		  objRef.mousedownCoords = this.mousedownCoords;
+		  var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
+		  if (distanceDiff < 1) {
+			distanceDiff = 1;
+		  }
+		  objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[objRef.smallCircleOriginH, objRef.smallCircleOriginK]), 'join');
+		  document.addEventListener("mousemove", objRef.mousemoveJoinAlt, false);
+		  document.addEventListener("mouseup", objRef.mouseupJoinAlt, false);
+		  document.removeEventListener("mousemove", this.mousemove, false);
+		  document.removeEventListener("mouseup", this.mouseup, false);
+		  this.lavaPath.parentNode.removeChild(this.lavaPath);
+		}
+		break;
+	  }
+	}
+	this.reset();
+    suppressPropagation(event);
+  };
+	
+  this.mousemoveSeparate = (event) => {
+	var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+	var distance = Math.sqrt(Math.pow(coords[0] - this.bigCircleH, 2) + Math.pow(coords[1] - this.bigCircleK, 2));
+	if (distance > this.bigCircleR + this.joinCircleR * 2 + this.smallCircleR) {
+	  var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
+	  detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
+	  document.addEventListener("mousemove", detached.mousemove, false);
+	  document.addEventListener("mouseup", detached.mouseup, false);
+	  document.removeEventListener("mousemove", this.mousemoveSeparate, false);
+	  document.removeEventListener("mouseup", this.mouseupSeparate, false);
+	  this.bigCircleR = this.bigCircleRMin;			
+	  this.reset();
+	} else {
+	  var distanceDiff = distance - this.originDistance;
+	  if (distanceDiff < 1) {
+		distanceDiff = 1;
+	  }
+	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], coords), 'separation');
+	}
+    suppressPropagation(event);
+  };
+  this.mousemoveJoin = (event) => {
+    var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+	var distance = Math.sqrt(Math.pow(this.smallCircleOriginH + coords[0] - this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.smallCircleOriginK + coords[1] - this.mousedownCoords[1] - this.bigCircleK, 2));
+
+	if (distance > this.bigCircleRMin + this.smallCircleR) {
+	  var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
+	  document.addEventListener("mousemove", detached.mousemove, false);
+	  document.addEventListener("mouseup", detached.mouseup, false);
+	  document.removeEventListener("mousemove", this.mousemoveJoin, false);
+	  document.removeEventListener("mouseup", this.mouseupJoin, false);
+	  this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+	  this.bigCircleR = this.bigCircleRMin;			
+	  this.reset();
+	} else {
+	  var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
+	  if (distanceDiff < 1) {
+	    distanceDiff = 1;
+	  }
+	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH + coords[0] - this.mousedownCoords[0], this.smallCircleOriginK + coords[1] - this.mousedownCoords[1]]), 'join');
+	}
+    suppressPropagation(event);
+  };
+  
+  this.mousemoveJoinAlt = (event) => {
+    var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+
+	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
+	this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
+
+    var distance = Math.sqrt(Math.pow(this.bigCircleH - this.smallCircleOriginH, 2) + Math.pow(this.bigCircleK - this.smallCircleOriginK, 2));
+
+	if (distance > this.bigCircleRMin + this.smallCircleR) {
+	  var detached = new Blob(this.smallCircleR, this.smallCircleOriginH, this.smallCircleOriginK);
+			
+	  document.addEventListener("mousemove", this.mousemove, false);
+	  document.addEventListener("mouseup", this.mouseup, false);
 	  document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
 	  document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
-
-      suppressPropagation(event);
-	};
-
-	this.lavaPath.addEventListener("mousedown", this.mousedown, false);
-		
-	document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
-	
-	this.reset();
+	  this.bigCircleR = this.bigCircleRMin;			
+	  this.reset();
+	} else {
+	  var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
+	  if (distanceDiff < 1) {
+	    distanceDiff = 1;
+	  }
+	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH, this.smallCircleOriginK]), 'join');
+	}
+    suppressPropagation(event);
+  };
+  this.mouseup = (event) => {
+    this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+	document.removeEventListener("mousemove", this.mousemove, false);
+	document.removeEventListener("mouseup", this.mouseup, false);
+    suppressPropagation(event);
+  };
+  this.mouseupSeparate = (event) => {
+    var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+	this.collapse(coords);
+	document.removeEventListener("mousemove", this.mousemoveSeparate, false);
+	document.removeEventListener("mouseup", this.mouseupSeparate, false);
+    suppressPropagation(event);
+  };
+  this.mouseupJoin = (event) => {
+    var coords = coordsGlobalToSVG(event.clientX, event.clientY);
+	this.join(coords);
+	document.removeEventListener("mousemove", this.mousemoveJoin, false);
+	document.removeEventListener("mouseup", this.mouseupJoin, false);
+    suppressPropagation(event);
+  };
+  this.mouseupJoinAlt = (event) => {
+    this.join(
+      [
+        this.smallCircleOriginH,
+        this.smallCircleOriginK,
+      ],
+    );
+	document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
+	document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
+    suppressPropagation(event);
+  };
+  this.lavaPath.addEventListener("mousedown", this.mousedown, false);
+  document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
+  this.reset();
 };
 
 const suppressPropagation = (e) => {
