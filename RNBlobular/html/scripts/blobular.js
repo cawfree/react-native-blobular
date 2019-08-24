@@ -15,7 +15,7 @@ window.addEventListener(
 );
 
 function Blob(radius, h, k) {
-  const self = this;
+
   this.bigCircleR = radius;
   this.bigCircleH = h;
   this.bigCircleK = k;
@@ -46,180 +46,173 @@ function Blob(radius, h, k) {
         .join(''),
     );
   };
-    //mode = [join, separation]
-    this.drawSomething = function(distance, angle, mode) {
-      if (mode === 'join') {
-		this.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
-      }
-      this.lavaPath.setAttributeNS(
-        null,
-        'transform',
-        `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
-      );
-	  this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
-      if (mode === 'join') {
-		this.joinCircleRMin = 1;
-		this.joinCircleRMax = 200;
-      } else if (mode === 'separation') {
-	    this.joinCircleR = VISCOSITY;
-      }
+  //mode = [join, separation]
+  this.drawSomething = (distance, angle, mode) => {
+    if (mode === 'join') {
+	  this.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
+    }
+    this.lavaPath.setAttributeNS(
+      null,
+      'transform',
+      `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
+    );
+	this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
+    if (mode === 'join') {
+	  this.joinCircleRMin = 1;
+	  this.joinCircleRMax = 200;
+    } else if (mode === 'separation') {
+	  this.joinCircleR = VISCOSITY;
+    }
 
-      const startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
-	  const finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
-	  const differenceK = startK - finalK;
-      const currDifferenceK = this.smallCircleK - finalK;
-	  const differencePercentage = currDifferenceK / differenceK;
+    const startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
+	const finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
+	const differenceK = startK - finalK;
+    const currDifferenceK = this.smallCircleK - finalK;
+	const differencePercentage = currDifferenceK / differenceK;
 
-      if (mode === 'join') {
-		this.bigCircleR = this.bigCircleRMax - (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
-		this.joinCircleR = this.joinCircleRMax - (this.joinCircleRMax - this.joinCircleRMin) * differencePercentage;
-      } else if (mode === 'separation') {
-	    this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
-      }
-
-	  const triangleA = this.bigCircleR + this.joinCircleR; // Side a
-	  const triangleB = this.smallCircleR + this.joinCircleR; // Side b
-	  const triangleC = Math.abs(this.smallCircleK); // Side c
-	  const triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
-
-      const e = (triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC));
-      const triangleArea = Math.sqrt(mode === 'join' ? e : Math.abs(e));
-      const isBigger = (triangleC >= triangleA);
-
-      const triangleH = isBigger ? 2 * triangleArea / triangleC : 2 * triangleArea / triangleA;
-      const triangleD = isBigger ? Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)) : Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2));
-
-      var bigCircleTan = triangleH / triangleD;
-	  var bigCircleAngle = Math.atan(bigCircleTan);
-	  var bigCircleSin = Math.sin(bigCircleAngle);
-	  var bigCircleIntersectX = bigCircleSin * this.bigCircleR;
-	  var bigCircleCos = Math.cos(bigCircleAngle);
-	  var bigCircleIntersectY = bigCircleCos * this.bigCircleR;
-
-	  var joinCircleH = bigCircleSin * (this.bigCircleR + this.joinCircleR);
-	  var joinCircleK = -bigCircleCos * (this.bigCircleR + this.joinCircleR);
-
-      var coord1X = -bigCircleIntersectX;
-	  var coord1Y = -bigCircleIntersectY;
-	  var coord2X = bigCircleIntersectX;
-	  var coord2Y = -bigCircleIntersectY;
-
-      const smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
-	  const smallCircleAngle = Math.atan(smallCircleTan);
-	  const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
-	  const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
-
-      const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
-	  const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
-      const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
-      const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
-	  this.lavaPath.setAttribute(
-        'd',
-        [
-          "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
-          (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
-          (!!x) && "m 0 -" + (crossOverY * 2),
-          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
-          "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
-          (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
-          (!!isOverlap) && "m 0 " + (crossOverY * 2),
-          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-          "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-        ]
-          .filter(e => !!e)
-          .join(),
-      );
-
+    if (mode === 'join') {
+	  this.bigCircleR = this.bigCircleRMax - (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
+	  this.joinCircleR = this.joinCircleRMax - (this.joinCircleRMax - this.joinCircleRMin) * differencePercentage;
+    } else if (mode === 'separation') {
+	  this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
     }
 	
-	this.collapse = function(coords)
-	{
-		var increment = VISCOSITY / 4;
-		var newK = this.smallCircleK + increment;
+    const triangleA = this.bigCircleR + this.joinCircleR; // Side a
+	const triangleB = this.smallCircleR + this.joinCircleR; // Side b
+	const triangleC = Math.abs(this.smallCircleK); // Side c
+	const triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
+
+    const e = (triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC));
+    const triangleArea = Math.sqrt(mode === 'join' ? e : Math.abs(e));
+    const isBigger = (triangleC >= triangleA);
+
+    const triangleH = isBigger ? 2 * triangleArea / triangleC : 2 * triangleArea / triangleA;
+    const triangleD = isBigger ? Math.sqrt(Math.pow(triangleA, 2) - Math.pow(triangleH, 2)) : Math.sqrt(Math.pow(triangleC, 2) - Math.pow(triangleH, 2));
+
+    const bigCircleTan = triangleH / triangleD;
+	const bigCircleAngle = Math.atan(bigCircleTan);
+	const bigCircleSin = Math.sin(bigCircleAngle);
+	const bigCircleIntersectX = bigCircleSin * this.bigCircleR;
+	const bigCircleCos = Math.cos(bigCircleAngle);
+	const bigCircleIntersectY = bigCircleCos * this.bigCircleR;
+
+	const joinCircleH = bigCircleSin * (this.bigCircleR + this.joinCircleR);
+	const joinCircleK = -bigCircleCos * (this.bigCircleR + this.joinCircleR);
+
+    const coord1X = -bigCircleIntersectX;
+	const coord1Y = -bigCircleIntersectY;
+	const coord2X = bigCircleIntersectX;
+	const coord2Y = -bigCircleIntersectY;
+
+    const smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
+	const smallCircleAngle = Math.atan(smallCircleTan);
+	const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
+	const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
+
+    const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
+	const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
+    const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
+    const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
+
+	this.lavaPath.setAttribute(
+      'd',
+      [
+        "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
+        (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
+        (!!x) && "m 0 -" + (crossOverY * 2),
+        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
+        "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
+        (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
+        (!!isOverlap) && "m 0 " + (crossOverY * 2),
+        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+      ]
+        .filter(e => !!e)
+        .join(),
+    );
+  }
+	
+	this.collapse = (coords) => {
+		const increment = VISCOSITY / 4;
+		const newK = this.smallCircleK + increment;
 		
-		if (newK > -this.bigCircleR + this.smallCircleR - 1)
-		{
+		if (newK > -this.bigCircleR + this.smallCircleR - 1) {
 			this.bigCircleR = this.bigCircleRMax;
 			this.reset();
-		}
-		else
-		{
-			var distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-			var angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
+		} else {
+			const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
+			const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
 			
-			this.drawSomething(distance, angle, 'separation');
-			setTimeout(function()
-				{
-					self.collapse(coords);
-				}, 25);
+			this.drawSomething(
+              distance,
+              angle, 
+              'separation',
+            );
+
+            setTimeout(
+              () => this.collapse(coords),
+              25,
+            );
 		}
 	}
 	
-	this.join = function(coords)
-	{
-		var increment = 20;
-		var newK = this.smallCircleK + increment;
-		
-		if (newK > -this.bigCircleR + this.smallCircleR - 1)
-		{
-			this.bigCircleR = this.bigCircleRMax;
-			this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-			this.reset();
-		}
-		else
-		{
-			var distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-			var angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
-			
-			this.drawSomething(distance, angle, 'join');
-			setTimeout(function()
-				{
-					self.join(coords);
-				}, 25);
-		}
+	this.join = (coords) => {
+	  const increment = 20;
+	  const newK = this.smallCircleK + increment;
+      if (newK > -this.bigCircleR + this.smallCircleR - 1) {
+        this.bigCircleR = this.bigCircleRMax;
+    	this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+    	this.reset();
+      } else {
+    	const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
+    	const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
+    	this.drawSomething(distance, angle, 'join');
+        setTimeout(
+          () => this.join(coords),
+          25,
+        );
+      }
 	}
 	
-	this.mousedown = function(event)
-	{
-		self.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
+	this.mousedown = (event) => {
+		this.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
 
-		self.bigCircleOriginH = self.bigCircleH;
-		self.bigCircleOriginK = self.bigCircleK;
+		this.bigCircleOriginH = this.bigCircleH;
+		this.bigCircleOriginK = this.bigCircleK;
 
-		self.originDistance = Math.sqrt(Math.pow(self.mousedownCoords[0] - self.bigCircleH, 2) + Math.pow(self.mousedownCoords[1] - self.bigCircleK, 2));
+		this.originDistance = Math.sqrt(Math.pow(this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.mousedownCoords[1] - this.bigCircleK, 2));
 		
-		self.smallCircleR = self.bigCircleR - self.originDistance;
+		this.smallCircleR = this.bigCircleR - this.originDistance;
 
 		 /* If click in centre, move blob instead of separating */
-		if (self.originDistance < 20)
+		if (this.originDistance < 20)
 		{
-			document.addEventListener("mousemove", self.mousemove, false);
-			document.addEventListener("mouseup", self.mouseup, false);
+			document.addEventListener("mousemove", this.mousemove, false);
+			document.addEventListener("mouseup", this.mouseup, false);
 		}
 		else
 		{
-			var bigCircleArea = Math.PI * Math.pow(self.bigCircleR, 2);
-			var smallCircleArea = Math.PI * Math.pow(self.smallCircleR, 2);
+			var bigCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
+			var smallCircleArea = Math.PI * Math.pow(this.smallCircleR, 2);
 			var afterCircleArea = bigCircleArea - smallCircleArea;
 			
-			self.bigCircleRMax = self.bigCircleR;
-			self.bigCircleRMin = Math.sqrt(afterCircleArea / Math.PI);
+			this.bigCircleRMax = this.bigCircleR;
+			this.bigCircleRMin = Math.sqrt(afterCircleArea / Math.PI);
 			
-			document.addEventListener("mousemove", self.mousemoveSeparate, false);
-			document.addEventListener("mouseup", self.mouseupSeparate, false);
+			document.addEventListener("mousemove", this.mousemoveSeparate, false);
+			document.addEventListener("mouseup", this.mouseupSeparate, false);
 		}
 
         suppressPropagation(event);
 	};
 	
-	this.mousemove = function(event)
-	{
+	this.mousemove = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
 		
-		self.lavaPath.setAttributeNS(null, "class", "lavaPath");
+		this.lavaPath.setAttributeNS(null, "class", "lavaPath");
 
-		self.bigCircleH = self.bigCircleOriginH + coords[0] - self.mousedownCoords[0];
-		self.bigCircleK = self.bigCircleOriginK + coords[1] - self.mousedownCoords[1];
+		this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
+		this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
 		
 			var paths = document.getElementsByTagName("path");
 
@@ -227,22 +220,22 @@ function Blob(radius, h, k) {
 			{
 				var objRef = paths[i].objRef;
 
-				var distance = Math.sqrt(Math.pow(self.bigCircleH - objRef.bigCircleH, 2) + Math.pow(self.bigCircleK - objRef.bigCircleK, 2))
+				var distance = Math.sqrt(Math.pow(this.bigCircleH - objRef.bigCircleH, 2) + Math.pow(this.bigCircleK - objRef.bigCircleK, 2))
 
-				if (paths[i] != self.lavaPath && distance < self.bigCircleR + objRef.bigCircleR)
+				if (paths[i] != this.lavaPath && distance < this.bigCircleR + objRef.bigCircleR)
 				{
 					var bigCircleArea = Math.PI * Math.pow(objRef.bigCircleR, 2);
-					var smallCircleArea = Math.PI * Math.pow(self.bigCircleR, 2);
+					var smallCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
 					var afterCircleArea = bigCircleArea + smallCircleArea;
 
-					if (self.bigCircleR < objRef.bigCircleR)
+					if (this.bigCircleR < objRef.bigCircleR)
 					{
 						objRef.bigCircleRMin = objRef.bigCircleR;
 						objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-						objRef.smallCircleR = self.bigCircleR;
-						objRef.smallCircleOriginH = self.bigCircleOriginH;
-						objRef.smallCircleOriginK = self.bigCircleOriginK;
-						objRef.mousedownCoords = self.mousedownCoords;
+						objRef.smallCircleR = this.bigCircleR;
+						objRef.smallCircleOriginH = this.bigCircleOriginH;
+						objRef.smallCircleOriginK = this.bigCircleOriginK;
+						objRef.mousedownCoords = this.mousedownCoords;
 
 						var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
 
@@ -251,28 +244,28 @@ function Blob(radius, h, k) {
 							distanceDiff = 1;
 						}
 
-						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[self.bigCircleH, self.bigCircleK]), 'join');
+						objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[this.bigCircleH, this.bigCircleK]), 'join');
 
 						document.addEventListener("mousemove", objRef.mousemoveJoin, false);
 						document.addEventListener("mouseup", objRef.mouseupJoin, false);
-						document.removeEventListener("mousemove", self.mousemove, false);
-						document.removeEventListener("mouseup", self.mouseup, false);
+						document.removeEventListener("mousemove", this.mousemove, false);
+						document.removeEventListener("mouseup", this.mouseup, false);
 
-						self.lavaPath.parentNode.removeChild(self.lavaPath);
+						this.lavaPath.parentNode.removeChild(this.lavaPath);
 					}
 					else
 					{
-						objRef.bigCircleRMin = self.bigCircleR;
+						objRef.bigCircleRMin = this.bigCircleR;
 						objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
 						objRef.smallCircleR = objRef.bigCircleR;
 						objRef.smallCircleOriginH = objRef.bigCircleH;
 						objRef.smallCircleOriginK = objRef.bigCircleK;
-						objRef.bigCircleR = self.bigCircleR;
-						objRef.bigCircleH = self.bigCircleH;
-						objRef.bigCircleK = self.bigCircleK;
-						objRef.bigCircleOriginH = self.bigCircleOriginH;
-						objRef.bigCircleOriginK = self.bigCircleOriginK;
-						objRef.mousedownCoords = self.mousedownCoords;
+						objRef.bigCircleR = this.bigCircleR;
+						objRef.bigCircleH = this.bigCircleH;
+						objRef.bigCircleK = this.bigCircleK;
+						objRef.bigCircleOriginH = this.bigCircleOriginH;
+						objRef.bigCircleOriginK = this.bigCircleOriginK;
+						objRef.mousedownCoords = this.mousedownCoords;
 
 						var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
 
@@ -285,169 +278,163 @@ function Blob(radius, h, k) {
 
 						document.addEventListener("mousemove", objRef.mousemoveJoinAlt, false);
 						document.addEventListener("mouseup", objRef.mouseupJoinAlt, false);
-						document.removeEventListener("mousemove", self.mousemove, false);
-						document.removeEventListener("mouseup", self.mouseup, false);
+						document.removeEventListener("mousemove", this.mousemove, false);
+						document.removeEventListener("mouseup", this.mouseup, false);
 
-						self.lavaPath.parentNode.removeChild(self.lavaPath);
+						this.lavaPath.parentNode.removeChild(this.lavaPath);
 					}
 
 					break;
 				}
 			}
 		
-		self.reset();
+		this.reset();
 
         suppressPropagation(event);
 	};
 	
-	this.mousemoveSeparate = function(event)
-	{
+	this.mousemoveSeparate = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
 		
-		var distance = Math.sqrt(Math.pow(coords[0] - self.bigCircleH, 2) + Math.pow(coords[1] - self.bigCircleK, 2));
+		var distance = Math.sqrt(Math.pow(coords[0] - this.bigCircleH, 2) + Math.pow(coords[1] - this.bigCircleK, 2));
 
-		if (distance > self.bigCircleR + self.joinCircleR * 2 + self.smallCircleR)
+		if (distance > this.bigCircleR + this.joinCircleR * 2 + this.smallCircleR)
 		{
-			var detached = new Blob(self.smallCircleR, coords[0], coords[1]);
+			var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
 			detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
 
 			
 			document.addEventListener("mousemove", detached.mousemove, false);
 			document.addEventListener("mouseup", detached.mouseup, false);
-			document.removeEventListener("mousemove", self.mousemoveSeparate, false);
-			document.removeEventListener("mouseup", self.mouseupSeparate, false);
+			document.removeEventListener("mousemove", this.mousemoveSeparate, false);
+			document.removeEventListener("mouseup", this.mouseupSeparate, false);
 
 			this.bigCircleR = this.bigCircleRMin;			
-			self.reset();
+			this.reset();
 		}
 		else
 		{
-			var distanceDiff = distance - self.originDistance;
+			var distanceDiff = distance - this.originDistance;
 
 			if (distanceDiff < 1)
 			{
 				distanceDiff = 1;
 			}
 
-			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], coords), 'separation');
+			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], coords), 'separation');
 		}
 
         suppressPropagation(event);
 	};
 	
-	this.mousemoveJoin = function(event)
-	{
+	this.mousemoveJoin = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
 		
-		var distance = Math.sqrt(Math.pow(self.smallCircleOriginH + coords[0] - self.mousedownCoords[0] - self.bigCircleH, 2) + Math.pow(self.smallCircleOriginK + coords[1] - self.mousedownCoords[1] - self.bigCircleK, 2));
+		var distance = Math.sqrt(Math.pow(this.smallCircleOriginH + coords[0] - this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.smallCircleOriginK + coords[1] - this.mousedownCoords[1] - this.bigCircleK, 2));
 
-		if (distance > self.bigCircleRMin + self.smallCircleR)
+		if (distance > this.bigCircleRMin + this.smallCircleR)
 		{
-			var detached = new Blob(self.smallCircleR, coords[0], coords[1]);
+			var detached = new Blob(this.smallCircleR, coords[0], coords[1]);
 			
 			document.addEventListener("mousemove", detached.mousemove, false);
 			document.addEventListener("mouseup", detached.mouseup, false);
-			document.removeEventListener("mousemove", self.mousemoveJoin, false);
-			document.removeEventListener("mouseup", self.mouseupJoin, false);
+			document.removeEventListener("mousemove", this.mousemoveJoin, false);
+			document.removeEventListener("mouseup", this.mouseupJoin, false);
 
-			self.lavaPath.setAttributeNS(null, "class", "lavaPath");
-			self.bigCircleR = self.bigCircleRMin;			
-			self.reset();
+			this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+			this.bigCircleR = this.bigCircleRMin;			
+			this.reset();
 		}
 		else
 		{
-			var distanceDiff = distance - self.bigCircleRMax + self.smallCircleR;
+			var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
 
 			if (distanceDiff < 1)
 			{
 				distanceDiff = 1;
 			}
 
-			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH + coords[0] - self.mousedownCoords[0], self.smallCircleOriginK + coords[1] - self.mousedownCoords[1]]), 'join');
+			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH + coords[0] - this.mousedownCoords[0], this.smallCircleOriginK + coords[1] - this.mousedownCoords[1]]), 'join');
 		}
 
         suppressPropagation(event);
 	};
 	
-	this.mousemoveJoinAlt = function(event)
-	{
+	this.mousemoveJoinAlt = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
 
-		self.bigCircleH = self.bigCircleOriginH + coords[0] - self.mousedownCoords[0];
-		self.bigCircleK = self.bigCircleOriginK + coords[1] - self.mousedownCoords[1];
+		this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
+		this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
 		
-		var distance = Math.sqrt(Math.pow(self.bigCircleH - self.smallCircleOriginH, 2) + Math.pow(self.bigCircleK - self.smallCircleOriginK, 2));
+		var distance = Math.sqrt(Math.pow(this.bigCircleH - this.smallCircleOriginH, 2) + Math.pow(this.bigCircleK - this.smallCircleOriginK, 2));
 
-		if (distance > self.bigCircleRMin + self.smallCircleR)
+		if (distance > this.bigCircleRMin + this.smallCircleR)
 		{
-			var detached = new Blob(self.smallCircleR, self.smallCircleOriginH, self.smallCircleOriginK);
+			var detached = new Blob(this.smallCircleR, this.smallCircleOriginH, this.smallCircleOriginK);
 			
-			document.addEventListener("mousemove", self.mousemove, false);
-			document.addEventListener("mouseup", self.mouseup, false);
-			document.removeEventListener("mousemove", self.mousemoveJoinAlt, false);
-			document.removeEventListener("mouseup", self.mouseupJoinAlt, false);
+			document.addEventListener("mousemove", this.mousemove, false);
+			document.addEventListener("mouseup", this.mouseup, false);
+			document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
+			document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
 
-			self.bigCircleR = self.bigCircleRMin;			
-			self.reset();
+			this.bigCircleR = this.bigCircleRMin;			
+			this.reset();
 		}
 		else
 		{
-			var distanceDiff = distance - self.bigCircleRMax + self.smallCircleR;
+			var distanceDiff = distance - this.bigCircleRMax + this.smallCircleR;
 
 			if (distanceDiff < 1)
 			{
 				distanceDiff = 1;
 			}
 
-			self.drawSomething(distanceDiff, calculateAngle([self.bigCircleH, self.bigCircleK], [self.smallCircleOriginH, self.smallCircleOriginK]), 'join');
+			this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH, this.smallCircleOriginK]), 'join');
 		}
 
         suppressPropagation(event);
 	};
 	
-	this.mouseup = function(event)
-	{
-		self.lavaPath.setAttributeNS(null, "class", "lavaPath");
+	this.mouseup = (event) => {
+		this.lavaPath.setAttributeNS(null, "class", "lavaPath");
 		
-		document.removeEventListener("mousemove", self.mousemove, false);
-		document.removeEventListener("mouseup", self.mouseup, false);
+		document.removeEventListener("mousemove", this.mousemove, false);
+		document.removeEventListener("mouseup", this.mouseup, false);
 
         
         suppressPropagation(event);
 	};
 
-	this.mouseupSeparate = function(event)
-	{
+	this.mouseupSeparate = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		self.collapse(coords);
+		this.collapse(coords);
 		
-		document.removeEventListener("mousemove", self.mousemoveSeparate, false);
-		document.removeEventListener("mouseup", self.mouseupSeparate, false);
+		document.removeEventListener("mousemove", this.mousemoveSeparate, false);
+		document.removeEventListener("mouseup", this.mouseupSeparate, false);
 
         suppressPropagation(event);
 	};
 
-	this.mouseupJoin = function(event)
-	{
+	this.mouseupJoin = (event) => {
 		var coords = coordsGlobalToSVG(event.clientX, event.clientY);
-		self.join(coords);
+		this.join(coords);
 		
-		document.removeEventListener("mousemove", self.mousemoveJoin, false);
-		document.removeEventListener("mouseup", self.mouseupJoin, false);
+		document.removeEventListener("mousemove", this.mousemoveJoin, false);
+		document.removeEventListener("mouseup", this.mouseupJoin, false);
 
         suppressPropagation(event);
 	};
 
-	this.mouseupJoinAlt = function(event) {
-      self.join(
+	this.mouseupJoinAlt = (event) => {
+      this.join(
         [
-          self.smallCircleOriginH,
-          self.smallCircleOriginK,
+          this.smallCircleOriginH,
+          this.smallCircleOriginK,
         ],
       );
 
-	  document.removeEventListener("mousemove", self.mousemoveJoinAlt, false);
-	  document.removeEventListener("mouseup", self.mouseupJoinAlt, false);
+	  document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
+	  document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
 
       suppressPropagation(event);
 	};
@@ -475,20 +462,17 @@ function coordsGlobalToSVG(globalX, globalY)
 	var viewportSize = getViewportSize();
 	var viewportRatio = viewportSize[0] / viewportSize[1];
 	
-	if (viewBoxRatio <= viewportRatio)
-	{
-		svgCoords[1] = globalY * (viewBoxHeight / viewportSize[1]);
-
-		var viewBoxGlobalWidth = viewBoxWidth * (viewportSize[1] / viewBoxHeight);
-		var viewBoxGlobalOriginX = (viewportSize[0] - viewBoxGlobalWidth) / 2;
-		svgCoords[0] = (globalX - viewBoxGlobalOriginX) * (viewBoxHeight / viewportSize[1]);
+	if (viewBoxRatio <= viewportRatio) {
+	  svgCoords[1] = globalY * (viewBoxHeight / viewportSize[1]);
+	  const viewBoxGlobalWidth = viewBoxWidth * (viewportSize[1] / viewBoxHeight);
+	  const viewBoxGlobalOriginX = (viewportSize[0] - viewBoxGlobalWidth) / 2;
+	  svgCoords[0] = (globalX - viewBoxGlobalOriginX) * (viewBoxHeight / viewportSize[1]);
 	}
-	else
-	{
-		svgCoords[0] = globalX * (viewBoxWidth / viewportSize[0]);
+	else {
+	  svgCoords[0] = globalX * (viewBoxWidth / viewportSize[0]);
 
-		var viewBoxGlobalHeight = viewBoxHeight * (viewportSize[0] / viewBoxWidth);		
-		var viewBoxGlobalOriginY = (viewportSize[1] - viewBoxGlobalHeight) / 2;
+		const viewBoxGlobalHeight = viewBoxHeight * (viewportSize[0] / viewBoxWidth);		
+		const viewBoxGlobalOriginY = (viewportSize[1] - viewBoxGlobalHeight) / 2;
 		svgCoords[1] = (globalY - viewBoxGlobalOriginY) * (viewBoxWidth / viewportSize[0]);
 	}
 	
