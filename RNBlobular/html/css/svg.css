@@ -1,0 +1,19 @@
+
+svg
+{
+	position: relative;
+	z-index: 1;
+}
+
+.lavaPath
+{
+	stroke: none;
+	stroke-width: 1px;
+	cursor: move;
+	opacity: 0.6;
+}
+
+.joining, .lavaPath:hover
+{
+	stroke: #FFFFFF;
+}
