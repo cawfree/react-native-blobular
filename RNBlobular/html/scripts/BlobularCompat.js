@@ -66,7 +66,36 @@ class BlobularCompat {
         },
         null,
       );
-    console.log('got ',blob);
+    if (blob) {
+      const context = this.__getContext()[blob.getId()];
+      const {
+        bigCircleH,
+        bigCircleK,
+      } = context;
+      const originDistance = Math.sqrt(
+        Math.pow(
+          x - bigCircleH,
+          2,
+        ) + Math.pow(
+          y - bigCircleK,
+          2,
+        ),
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleOriginH: bigCircleH,
+          bigCircleOriginK: bigCircleK,
+	      originDistance,
+        },
+      );
+      if (originDistance < 20) {
+        console.log('move');
+      } else {
+        console.log('separate');
+      }
+    }
+    return;
   }
   onPointerMoved(x, y) {
     this.x = x;
@@ -237,7 +266,7 @@ window.addEventListener(
     );
     svg.addEventListener(
       'mousemove',
-       e => b.onPointerMove(
+       e => b.onPointerMoved(
         ...coordsGlobalToSVG(
           e.clientX,
           e.clientY,
