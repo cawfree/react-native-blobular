@@ -696,6 +696,10 @@ class BlobularCompat {
       smallCircleR: blob.getSmallestRadius(),
       smallCircleH: 0,
       smallCircleK: - blob.getRadius() + blob.getSmallestRadius() - 1,
+      pointerCoords: [
+        blob.getX(),
+        blob.getY(),
+      ],
     };
   }
   __getResetData(blobId, blobContext = {}) {
