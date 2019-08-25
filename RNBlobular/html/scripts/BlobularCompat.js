@@ -112,7 +112,6 @@ class BlobularCompat {
           EVENT_TYPE_DRAG,
           blob,
         );
-        //this.__setSeparating(false); // mousemove, mouseup
       } else {
 	    const bigCircleArea = Math.PI * Math.pow(
           bigCircleR,
@@ -136,10 +135,8 @@ class BlobularCompat {
           EVENT_TYPE_SEPARATE,
           blob,
         );
-        //this.__setSeparating(true); // mousemoveSeparate, mouseupSeparate
       }
     }
-    return;
   }
   getCircleYForX(h, r, x) {
     return Math.sqrt(
@@ -295,7 +292,7 @@ class BlobularCompat {
     );
   }
   __removeEventListener(eventType, blob) {
-    const existing = this.__getEventListeners[eventType];
+    const existing = this.__getEventListeners()[eventType];
     if (existing) {
       return this.__setEventListeners(
         {
