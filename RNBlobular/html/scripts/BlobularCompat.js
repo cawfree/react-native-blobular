@@ -80,7 +80,6 @@ class BlobularCompat {
         bigCircleH,
         bigCircleK,
         bigCircleR,
-        smallCircleR,
       } = context;
       const originDistance = Math.sqrt(
         Math.pow(
@@ -91,12 +90,14 @@ class BlobularCompat {
           2,
         ),
       );
+      const smallCircleR = bigCircleR - originDistance;
       Object.assign(
         context,
         {
           bigCircleOriginH: bigCircleH,
           bigCircleOriginK: bigCircleK,
 	      originDistance,
+          smallCircleR,
           pointerCoords: [ // mousedownCoords
             x,
             y,
@@ -283,7 +284,10 @@ class BlobularCompat {
             2,
           ),
         );
+        //console.log(distance, activeContext.bigCircleR, activeContext.joinCircleR, activeContext.smallCircleR);
+        //console.log(distance, 'vs', activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR);
 	    if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
+          //console.log('detached');
           const detached = new Blob(
             `detached-${Math.random()}`,
             activeContext.smallCircleR,
@@ -324,6 +328,7 @@ class BlobularCompat {
             'separation',
           );
         }
+        return;
       } else {
         const {
           bigCircleOriginH,
@@ -404,6 +409,7 @@ class BlobularCompat {
               );
 
               // TODO: NEED ROUTING PATTERN HERE! HOW TO DO EVENTS?
+              console.log('would join normal');
   
               this.__shouldDeleteBlob(activeBlob);
             } else {
@@ -446,6 +452,7 @@ class BlobularCompat {
                 ),
                 'join',
               );
+
               // TODO: listener i/o here!
               this.__shouldDeleteBlob(
                 activeBlob,
@@ -456,7 +463,6 @@ class BlobularCompat {
         }
       }
       // TODO: need to call reset() here, but what does that mean in terms of deleted context? what about initial positions, etc?
-      console.log('would reset here');
       const {
         transform,
         path,
