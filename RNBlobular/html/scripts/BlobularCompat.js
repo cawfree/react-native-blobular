@@ -352,7 +352,8 @@ class BlobularCompat {
           2,
         );
         const afterCircleArea = bigCircleArea + smallCircleArea;
-        if (bigCircleR < otherContext.bigCircleR) {
+        // XXX: Why is this hack required? (*2)
+        if (2 * bigCircleR < otherContext.bigCircleR) {
           Object.assign(
             otherContext,
             {
