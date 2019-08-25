@@ -283,7 +283,6 @@ class BlobularCompat {
             2,
           ),
         );
-
 	    if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
           const detached = new Blob(
             `detached-${Math.random()}`,
@@ -465,19 +464,6 @@ class BlobularCompat {
         activeBlob.getId(),
         activeContext,
       );
-
-//return this.__getCallback()
-//      .updateBlob(
-//        blob.getId(),
-//        [
-//          bigCircleH,
-//          bigCircleK,
-//        ],
-//        angle,
-//        path,
-//        mode,
-//    );
-
       this.__getCallback()
         .updateBlob(
           activeBlob.getId(),
@@ -654,12 +640,18 @@ window.addEventListener(
                 'class',
                 'lavaPath joining',
               );
+          } else if (withMode === 'separation') {
           }
           path
             .setAttributeNS(
               null,
               'transform',
               `translate(${withTransform[0]}, ${withTransform[1]}) rotate(${withRotation}, 0, 0)`,
+            );
+          path
+            .setAttribute(
+              'd',
+              withPath,
             );
           // TODO: more rendering...
         },
