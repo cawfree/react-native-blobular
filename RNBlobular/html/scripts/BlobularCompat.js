@@ -514,69 +514,6 @@ class BlobularCompat {
       );
     }
   }
-//efijiwfjiewj
-  __onPointerMovedJoinAlt(x, y, blob) {
-    const context = this.__getContext()[blob.getId()];
-    const distance = Math.sqrt(
-      Math.pow(
-        context.smallCircleOriginH + x - context.pointerCoords[0] - context.bigCircleH,
-        2,
-      ) + Math.pow(
-        context.smallCircleOriginK + y - context.pointerCoords[1] - context.bigCircleK,
-        2,
-      ),
-    );
-    if (distance > context.bigCircleRMin + context.smallCircleR) {
-      const detached = new Blob(
-        `join-detach-${Math.random()}`,
-        context.smallCircleR,
-        x,
-        y,
-        blob.getViscosity(),
-        blob.getSmallestRadius(),
-      );
-      this.putBlob(
-        detached,
-      );
-      this.__addEventListener(
-        EVENT_TYPE_DRAG,
-        detached,
-      );
-      this.__removeEventListener(
-        EVENT_TYPE_JOIN,
-        blob,
-      );
-      Object.assign(
-        context,
-        {
-          bigCircleR: context.bigCircleRMin,
-        },
-      );
-      this.__doReset(
-        blob,
-      );
-    } else {
-	  const distanceDiff = Math.max(
-        distance - context.bigCircleRMax + context.smallCircleR,
-        1,
-      );
-      this.render(
-        blob,
-        distanceDiff,
-        this.calculateAngle(
-          [
-            context.bigCircleH,
-            context.bigCircleK,
-          ],
-          [
-            context.smallCircleOriginH + x - context.pointerCoords[0],
-            context.smallCircleOriginK + y - context.pointerCoords[1],
-          ],
-        ),
-        'separation', // TODO: verify this
-      );
-    }
-  }
   __onPointerMovedJoin(x, y, blob) {
     const context = this.__getContext()[blob.getId()];
     const distance = Math.sqrt(
