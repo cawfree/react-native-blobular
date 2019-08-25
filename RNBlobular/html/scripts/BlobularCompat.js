@@ -516,7 +516,65 @@ class BlobularCompat {
     }
   }
   __onPointerMovedJoin(x, y, blob) {
-    console.log('join');
+    const context = this.__getContext()[blob.getId()];
+    const distance = Math.sqrt(
+      Math.pow(
+        context.smallCircleOriginH + x - context.pointerCoords[0] - context.bigCircleH,
+        2,
+      ) + Math.pow(
+        context.smallCircleOriginK + y - context.pointerCoords[1] - context.bigCircleK,
+        2,
+      ),
+    );
+    if (distance > context.bigCircleRMin + context.smallCircleR) {
+      const detached = new Blob(
+        `join-detach-${Math.random()}`,
+        context.smallCircleR,
+        x,
+        y,
+        blob.getViscosity(),
+        blob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        detached,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_JOIN,
+        blob,
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
+    } else {
+	  const distanceDiff = Math.max(
+        distance - context.bigCircleRMax + context.smallCircleR,
+        1,
+      );
+      this.render(
+        blob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            context.bigCircleH,
+            context.bigCircleK,
+          ],
+          [
+            context.smallCircleOriginH + x - context.pointerCoords[0],
+            context.smallCircleOriginK + y - context.pointerCoords[1],
+          ],
+        ),
+      );
+    }
   }
   __onPointerMovedJoinAlt(x, y, blob) {
     console.log('join alt');
@@ -626,9 +684,56 @@ class BlobularCompat {
           .getId(),
       );
   }
+  __onPointerUpDrag(x, y, blob) {
+    this.__removeEventListener(
+      EVENT_TYPE_DRAG,
+      blob,
+    );
+  }
+  __onPointerUpSeparate(x, y, blob) {
+    console.log('should collapse');
+    this.__removeEventListener(
+      EVENT_TYPE_SEPARATE,
+      blob,
+    );
+  }
+  __onPointerUpJoin(x, y, blob) {
+    console.log('should join');
+    this.__removeEventListener(
+      EVENT_TYPE_JOIN,
+      blob,
+    );
+  }
+  __onPointerUpJoinAlt(x, y, blob) {
+    console.log('should join small');
+    this.__removeEventListener(
+      EVENT_TYPE_JOIN_ALT,
+      blob,
+    );
+  }
   onPointerUp(x, y) {
     this.x = x;
     this.y = y;
+    const eventListeners = this.__getEventListeners();
+    (eventListeners[EVENT_TYPE_DRAG] || [])
+      .map(
+        blob => this.__onPointerUpDrag(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_SEPARATE] || [])
+      .map(
+        blob => this.__onPointerUpSeparate(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_JOIN] || [])
+      .map(
+        blob => this.__onPointerUpJoin(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_JOIN_ALT] || [])
+      .map(
+        (blob) => {
+          console.log('join alt up');
+        },
+      );
+
   }
   putBlob(blob) {
     const id = blob
