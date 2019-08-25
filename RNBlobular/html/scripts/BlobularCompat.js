@@ -261,7 +261,6 @@ class BlobularCompat {
     ]
       .filter(e => !!e)
       .join();
-
     return this.__getCallback()
       .updateBlob(
         blob.getId(),
@@ -365,7 +364,7 @@ class BlobularCompat {
               smallCircleOriginH: bigCircleOriginH,
               smallCircleOriginK: bigCircleOriginK,
               pointerCoords: [
-                ...pointerCoords,
+                ...activeContext.pointerCoords,
               ],
             },
           );
@@ -388,7 +387,6 @@ class BlobularCompat {
             ),
             'join',
           );
-
           this.__addEventListener(
             EVENT_TYPE_JOIN, // TODO needs to exist
             otherBlob,
@@ -414,7 +412,7 @@ class BlobularCompat {
               bigCircleL: activeContext.bigCircleK,
               bigCircleOriginH: activeContext.bigCircleOriginH,
               bigCircleOriginK: activeContext.bigCircleOriginK,
-              pointerCoords: activeContext.pointerCoords,
+              pointerCoords: [...activeContext.pointerCoords],
             },
           );
 
@@ -446,9 +444,10 @@ class BlobularCompat {
         this.__shouldDeleteBlob(
           activeBlob,
         );
-        break;
+        return;
       }
     }
+    this.__doReset(activeBlob);
   }
   // mousemoveSeparate
   __onPointerMovedSeparate(x, y, activeBlob) {
@@ -515,6 +514,69 @@ class BlobularCompat {
       );
     }
   }
+//efijiwfjiewj
+  __onPointerMovedJoinAlt(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const distance = Math.sqrt(
+      Math.pow(
+        context.smallCircleOriginH + x - context.pointerCoords[0] - context.bigCircleH,
+        2,
+      ) + Math.pow(
+        context.smallCircleOriginK + y - context.pointerCoords[1] - context.bigCircleK,
+        2,
+      ),
+    );
+    if (distance > context.bigCircleRMin + context.smallCircleR) {
+      const detached = new Blob(
+        `join-detach-${Math.random()}`,
+        context.smallCircleR,
+        x,
+        y,
+        blob.getViscosity(),
+        blob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        detached,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_JOIN,
+        blob,
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
+    } else {
+	  const distanceDiff = Math.max(
+        distance - context.bigCircleRMax + context.smallCircleR,
+        1,
+      );
+      this.render(
+        blob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            context.bigCircleH,
+            context.bigCircleK,
+          ],
+          [
+            context.smallCircleOriginH + x - context.pointerCoords[0],
+            context.smallCircleOriginK + y - context.pointerCoords[1],
+          ],
+        ),
+        'separation', // TODO: verify this
+      );
+    }
+  }
   __onPointerMovedJoin(x, y, blob) {
     const context = this.__getContext()[blob.getId()];
     const distance = Math.sqrt(
@@ -573,11 +635,81 @@ class BlobularCompat {
             context.smallCircleOriginK + y - context.pointerCoords[1],
           ],
         ),
+        'separation', // TODO: verify this
       );
     }
   }
+  // this is a bigger blob into a smaller one
   __onPointerMovedJoinAlt(x, y, blob) {
-    console.log('join alt');
+    const context = this.__getContext()[blob.getId()];
+    Object.assign(
+      context,
+      {
+        bigCircleH: context.bigCircleOriginH + x - context.pointerCoords[0],
+        bigCircleK: context.bigCircleOriginK + y - context.pointerCoords[1],
+      },
+    );
+
+    const distance = Math.sqrt(
+      Math.pow(
+        context.bigCircleH - context.smallCircleOriginH,
+        2,
+      ) + Math.pow(
+        context.bigCircleK - context.smallCircleOriginK,
+        2,
+      ),
+    );
+
+	if (distance > context.bigCircleRMin + context.smallCircleR) {
+      const detached = new Blob(
+        `detached-join-alt-${Math.random()}`,
+        context.smallCircleR,
+        context.smallCircleOriginH,
+        context.smallCircleOriginK,
+        blob.getViscosity(),
+        blob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        blob,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_JOIN_ALT,
+        blob,
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
+    } else {
+	  const distanceDiff = Math.max(
+        distance - context.bigCircleRMax + context.smallCircleR,
+        1,
+      );
+      this.render(
+        blob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            context.bigCircleH,
+            context.bigCircleK,
+          ],
+          [
+            context.smallCircleOriginH,
+            context.smallCircleOriginK,
+          ],
+        ),
+        'join',
+      );
+    }
   }
   onPointerMoved(x, y) {
     this.x = x;
@@ -591,8 +723,6 @@ class BlobularCompat {
             y,
             blob,
           );
-          // XXX: This is used as some kind of forceUpdate()?
-          this.__doReset(blob);
         },
       );
     (eventListeners[EVENT_TYPE_SEPARATE] || [])
@@ -641,12 +771,13 @@ class BlobularCompat {
       .updateBlob(
         activeBlob.getId(),
         transform,
-        0,
+        null,
         path,
         undefined, // unknown mode...?
       );
   }
   __shouldDeleteBlob(blob) {
+    console.log('deleted ' + blob.getId());
     this.__setBlobs(
       this.__getBlobs()
         .filter(
@@ -656,7 +787,7 @@ class BlobularCompat {
     Object.assign(
       this.__getContext(),
       {
-        [blob.getId()]: undefined,
+        [blob.getId()]: null,
       },
     );
     this.__setEventListeners(
@@ -674,10 +805,6 @@ class BlobularCompat {
           {},
         ),
     );
-    // TODO: obviously delete all, since it would not be possible to interact
-    //       or iterate against at all afterwards
-    // TODO: MISSING DELETE LOCAL CONTEXT + BLOB REF, IMPORTANT
-    //       OR JUST THE PATH DATA??!?!?!?
     this.__getCallback()
       .deleteBlob(
         blob
@@ -807,7 +934,8 @@ class BlobularCompat {
       ],
     };
   }
-  __getResetData(blobId, blobContext = {}) {
+  // TODO: where are we calling re
+  __getResetData(blobId, blobContext) {
     const {
       bigCircleH,
       bigCircleK,
@@ -877,7 +1005,7 @@ window.addEventListener(
             .setAttributeNS(
               null,
               'transform',
-              `translate(${withTransform[0]}, ${withTransform[1]}) rotate(${withRotation}, 0, 0)`,
+              (!!withRotation) ? `translate(${withTransform[0]}, ${withTransform[1]}) rotate(${withRotation}, 0, 0)` : `translate(${withTransform[0]}, ${withTransform[1]})`,
             );
           path
             .setAttribute(
