@@ -353,7 +353,25 @@ class BlobularCompat {
         );
         const afterCircleArea = bigCircleArea + smallCircleArea;
         // XXX: Why is this hack required? (*2)
-        if (2 * bigCircleR < otherContext.bigCircleR) {
+        if (bigCircleR < otherContext.bigCircleR) {
+
+          //objRef.bigCircleRMin = objRef.bigCircleR;
+						//objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
+						//objRef.smallCircleR = self.bigCircleR;
+						//objRef.smallCircleOriginH = self.bigCircleOriginH;
+						//objRef.smallCircleOriginK = self.bigCircleOriginK;
+						//objRef.mousedownCoords = self.mousedownCoords;
+
+						//var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
+
+						//if (distanceDiff < 1)
+						//{
+						//	distanceDiff = 1;
+						//}
+
+						//objRef.drawJoin(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[self.bigCircleH, self.bigCircleK]));
+
+
           Object.assign(
             otherContext,
             {
@@ -361,12 +379,16 @@ class BlobularCompat {
               bigCircleRMax: Math.sqrt(
                 afterCircleArea / Math.PI,
               ),
-              smallCircleR: bigCircleR,
-              smallCircleOriginH: bigCircleOriginH,
-              smallCircleOriginK: bigCircleOriginK,
+              smallCircleR: activeContext.bigCircleR,
+              smallCircleOriginH: activeContext.bigCircleOriginH,
+              smallCircleOriginK: activeContext.bigCircleOriginK,
               pointerCoords: [
                 ...activeContext.pointerCoords,
               ],
+              // XXX: this is close too...
+              //pointerCoords: [
+              //  ...otherContext.pointerCoords,
+              //],
             },
           );
 	      const distanceDiff = Math.max(
