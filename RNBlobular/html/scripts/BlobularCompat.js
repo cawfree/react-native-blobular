@@ -1,3 +1,6 @@
+const EVENT_TYPE_DRAG = 'event_drag';
+const EVENT_TYPE_SEPARATE = 'event_separate';
+
 class Blob {
   constructor(id, radius, x, y, viscosity, smallestRadius) {
     this.id = id;
@@ -42,9 +45,9 @@ class BlobularCompat {
     this.context = {
       // [blobId]: { /* context */ },
     };
-    this.separating = false;
-    // XXX: The blob being dragged.
-    this.activeBlob = null;
+    this.eventListeners = {
+      
+    };
   }
   onPointerDown(x, y) {
     this.x = x;
@@ -71,9 +74,6 @@ class BlobularCompat {
         },
         null,
       );
-    this.__setActiveBlob(
-      blob,
-    );
     if (blob) {
       const context = this.__getContext()[blob.getId()];
       const {
@@ -106,7 +106,11 @@ class BlobularCompat {
       );
       // TODO: Radius which counts as a drag, abstract.
       if (originDistance < 20) {
-        this.__setSeparating(false); // mousemove, mouseup
+        this.__addEventListener(
+          EVENT_TYPE_DRAG,
+          blob,
+        );
+        //this.__setSeparating(false); // mousemove, mouseup
       } else {
 	    const bigCircleArea = Math.PI * Math.pow(
           bigCircleR,
@@ -126,7 +130,11 @@ class BlobularCompat {
             ),
           },
         );
-        this.__setSeparating(true); // mousemoveSeparate, mouseupSeparate
+        this.__addEventListener(
+          EVENT_TYPE_SEPARATE,
+          blob,
+        );
+        //this.__setSeparating(true); // mousemoveSeparate, mouseupSeparate
       }
     }
     return;
@@ -267,219 +275,275 @@ class BlobularCompat {
         mode,
     );
   }
-  onPointerMoved(x, y) {
-    this.x = x;
-    this.y = y;
-    const activeBlob = this.__getActiveBlob();
-    if (activeBlob) {
-      const activeContext = this.__getContext()[activeBlob.getId()];
-      // mousemoveSeparate
-      if (this.__isSeparating()) {
-	    const distance = Math.sqrt(
-          Math.pow(
-            x - activeContext.bigCircleH,
-            2,
-          ) + Math.pow(
-            y - activeContext.bigCircleK,
-            2,
-          ),
+  __addEventListener(eventType, blob) {
+    const existing = this.__getEventListeners[eventType] || [];
+    if (existing.indexOf(blob) < 0) {
+      return this.__setEventListeners(
+        {
+          ...this.__getEventListeners(),
+          [eventType]: [
+            ...existing,
+            blob,
+          ],
+        },
+      );
+    }
+    throw new Error(
+      `Blob "${blob.getId()} is already configured to listen to the ${eventType} event!"`,
+    );
+  }
+  __removeEventListener(eventType, blob) {
+    const existing = this.__getEventListeners[eventType];
+    if (existing) {
+      return this.__setEventListeners(
+        {
+          ...this.__getEventListeners(),
+          [eventType]: existing
+            .filter(
+              e => (e.getId() !== blob.getId()),
+            ),
+        },
+      );
+    }
+    throw new Error(
+      `Attempted to unregister a listener for ${eventType}, when none have been allocated.`,
+    );
+  }
+  // mousemove
+  __onPointerMovedDrag(x, y, activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+    const {
+      bigCircleOriginH,
+      bigCircleOriginK,
+      pointerCoords,
+    } = activeContext;
+    // TODO: request set lavaPath attribute? huh?
+    Object.assign(
+      activeContext,
+      {
+        bigCircleH: bigCircleOriginH + x - pointerCoords[0],
+        bigCircleK: bigCircleOriginK + y - pointerCoords[1],
+      },
+    );
+    const {
+      bigCircleH,
+      bigCircleK,
+      bigCircleR,
+    } = activeContext;
+    const otherBlobs = this.__getBlobs()
+      .filter(e => e.getId() !== activeBlob.getId());
+    for (let i = 0; i < otherBlobs.length; i += 1) {
+      const otherBlob = otherBlobs[i];
+      const otherContext = this.__getContext()[otherBlob.getId()];
+	  const distance = Math.sqrt(
+        Math.pow(
+          bigCircleH - otherContext.bigCircleH,
+          2,
+        ) + Math.pow(
+          bigCircleK - otherContext.bigCircleK,
+          2,
+        ),
+      );
+      if (distance < bigCircleR + otherContext.bigCircleR) {
+        const bigCircleArea = Math.PI * Math.pow(
+          otherContext.bigCircleR,
+          2,
         );
-        //console.log(distance, activeContext.bigCircleR, activeContext.joinCircleR, activeContext.smallCircleR);
-        //console.log(distance, 'vs', activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR);
-	    if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
-          //console.log('detached');
-          const detached = new Blob(
-            `detached-${Math.random()}`,
-            activeContext.smallCircleR,
-            x,
-            y,
-            activeBlob.getViscosity(),
-            activeBlob.getSmallestRadius(),
-          );
-          // TODO: X and Y should not belong to the blob, should belong to put! fix this!
-          this.putBlob(
-            detached,
-          );
-          // TODO: Need to propagate this info (reason?) back to the caller for rendering
-	      //detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
-          // TODO: requires event handling pattern here!
+        const smallCircleArea = Math.PI * Math.pow(
+          bigCircleR,
+          2,
+        );
+        const afterCircleArea = bigCircleArea + smallCircleArea;
+        if (bigCircleR < otherContext.bigCircleR) {
           Object.assign(
-            activeContext,
+            otherContext,
             {
-              bigCircleR: activeContext.bigCircleRMin,
+              bigCircleRMin: otherContext.bigCircleR,
+              bigCircleRMax: Math.sqrt(
+                afterCircleArea / Math.PI,
+              ),
+              smallCircleR: bigCircleR,
+              smallCircleOriginH: bigCircleOriginH,
+              smallCircleOriginK: bigCircleOriginK,
+              pointerCoords: [
+                ...pointerCoords,
+              ],
             },
           );
-          // TODO: needs a reset here!
-        } else {
-	      const distanceDiff = Math.max(distance - activeContext.originDistance, 1);
+	      const distanceDiff = Math.max(
+            distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
+            1,
+          );
           this.render(
-            activeBlob,
+            otherBlob,
             distanceDiff,
             this.calculateAngle(
+              [
+                otherContext.bigCircleH,
+                otherContext.bigCircleK,
+              ],
               [
                 activeContext.bigCircleH,
                 activeContext.bigCircleK,
               ],
+            ),
+            'join',
+          );
+
+          // TODO: NEED ROUTING PATTERN HERE! HOW TO DO EVENTS?
+          console.log('would join normal');
+  
+          this.__shouldDeleteBlob(activeBlob);
+        } else {
+          Object.assign(
+            otherContext,
+            {
+              bigCircleRMin: activeContext.bigCircleR,
+              bigCircleRMax: Math.sqrt(
+                afterCircleArea / Math.PI,
+              ),
+              smallCircleR: otherContext.bigCircleR,
+              smallCircleOriginH: otherContext.bigCircleH,
+              smallCircleOriginK: otherContext.bigCircleK,
+              bigCircleR: activeContext.bigCircleR,
+              bigCircleH: activeContext.bigCircleH,
+              bigCircleL: activeContext.bigCircleK,
+              bigCircleOriginH: activeContext.bigCircleOriginH,
+              bigCircleOriginK: activeContext.bigCircleOriginK,
+              pointerCoords: activeContext.pointerCoords,
+            },
+          );
+
+	      const distanceDiff = Math.max(
+            distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
+            1,
+          );
+
+          this.render(
+            otherBlob,
+            distanceDiff,
+            this.calculateAngle(
               [
-                x,
-                y,
+                otherContext.bigCircleH,
+                otherContext.bigCircleK,
+              ],
+              [
+                otherContext.smallCircleOriginH,
+                otherContext.smallCircleOriginK,
               ],
             ),
-            'separation',
+            'join',
+          );
+
+          // TODO: listener i/o here!
+          this.__shouldDeleteBlob(
+            activeBlob,
           );
         }
-        return;
-      } else {
-        const {
-          bigCircleOriginH,
-          bigCircleOriginK,
-          pointerCoords,
-        } = activeContext;
-        // TODO: request set lavaPath attribute? huh?
-        Object.assign(
-          activeContext,
-          {
-            bigCircleH: bigCircleOriginH + x - pointerCoords[0],
-            bigCircleK: bigCircleOriginK + y - pointerCoords[1],
-          },
-        );
-        const {
-          bigCircleH,
-          bigCircleK,
-          bigCircleR,
-        } = activeContext;
-        const otherBlobs = this.__getBlobs()
-          .filter(e => e.getId() !== activeBlob.getId());
-        for (let i = 0; i < otherBlobs.length; i += 1) {
-          const otherBlob = otherBlobs[i];
-          const otherContext = this.__getContext()[otherBlob.getId()];
-	      const distance = Math.sqrt(
-            Math.pow(
-              bigCircleH - otherContext.bigCircleH,
-              2,
-            ) + Math.pow(
-              bigCircleK - otherContext.bigCircleK,
-              2,
-            ),
-          );
-          if (distance < bigCircleR + otherContext.bigCircleR) {
-            const bigCircleArea = Math.PI * Math.pow(
-              otherContext.bigCircleR,
-              2,
-            );
-            const smallCircleArea = Math.PI * Math.pow(
-              bigCircleR,
-              2,
-            );
-            const afterCircleArea = bigCircleArea + smallCircleArea;
-            if (bigCircleR < otherContext.bigCircleR) {
-              Object.assign(
-                otherContext,
-                {
-                  bigCircleRMin: otherContext.bigCircleR,
-                  bigCircleRMax: Math.sqrt(
-                    afterCircleArea / Math.PI,
-                  ),
-                  smallCircleR: bigCircleR,
-                  smallCircleOriginH: bigCircleOriginH,
-                  smallCircleOriginK: bigCircleOriginK,
-                  pointerCoords: [
-                    ...pointerCoords,
-                  ],
-                },
-              );
-		      const distanceDiff = Math.max(
-                distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
-                1,
-              );
-              this.render(
-                otherBlob,
-                distanceDiff,
-                this.calculateAngle(
-                  [
-                    otherContext.bigCircleH,
-                    otherContext.bigCircleK,
-                  ],
-                  [
-                    activeContext.bigCircleH,
-                    activeContext.bigCircleK,
-                  ],
-                ),
-                'join',
-              );
-
-              // TODO: NEED ROUTING PATTERN HERE! HOW TO DO EVENTS?
-              console.log('would join normal');
-  
-              this.__shouldDeleteBlob(activeBlob);
-            } else {
-              Object.assign(
-                otherContext,
-                {
-                  bigCircleRMin: activeContext.bigCircleR,
-                  bigCircleRMax: Math.sqrt(
-                    afterCircleArea / Math.PI,
-                  ),
-                  smallCircleR: otherContext.bigCircleR,
-                  smallCircleOriginH: otherContext.bigCircleH,
-                  smallCircleOriginK: otherContext.bigCircleK,
-                  bigCircleR: activeContext.bigCircleR,
-                  bigCircleH: activeContext.bigCircleH,
-                  bigCircleL: activeContext.bigCircleK,
-                  bigCircleOriginH: activeContext.bigCircleOriginH,
-                  bigCircleOriginK: activeContext.bigCircleOriginK,
-                  pointerCoords: activeContext.pointerCoords,
-                },
-              );
-
-		      const distanceDiff = Math.max(
-                distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
-                1,
-              );
-
-              this.render(
-                otherBlob,
-                distanceDiff,
-                this.calculateAngle(
-                  [
-                    otherContext.bigCircleH,
-                    otherContext.bigCircleK,
-                  ],
-                  [
-                    otherContext.smallCircleOriginH,
-                    otherContext.smallCircleOriginK,
-                  ],
-                ),
-                'join',
-              );
-
-              // TODO: listener i/o here!
-              this.__shouldDeleteBlob(
-                activeBlob,
-              );
-            }
-            break;
-          }
-        }
+        break;
       }
-      // TODO: need to call reset() here, but what does that mean in terms of deleted context? what about initial positions, etc?
-      const {
-        transform,
-        path,
-      } = this.__getResetData(
-        activeBlob.getId(),
-        activeContext,
+    }
+  }
+  // mousemoveSeparate
+  __onPointerMovedSeparate(x, y, activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+	const distance = Math.sqrt(
+      Math.pow(
+        x - activeContext.bigCircleH,
+        2,
+      ) + Math.pow(
+        y - activeContext.bigCircleK,
+        2,
+      ),
+    );
+	if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
+      const detached = new Blob(
+        `detached-${Math.random()}`,
+        activeContext.smallCircleR,
+        x,
+        y,
+        activeBlob.getViscosity(),
+        activeBlob.getSmallestRadius(),
       );
-      this.__getCallback()
-        .updateBlob(
-          activeBlob.getId(),
-          transform,
-          0,
-          path,
-          undefined, // unknown mode...?
-        );
-    } 
-    return;
+      // TODO: X and Y should not belong to the blob, should belong to put! fix this!
+      this.putBlob(
+        detached,
+      );
+      // TODO: Need to propagate this info (reason?) back to the caller for rendering
+	  //detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
+      // TODO: requires event handling pattern here!
+      Object.assign(
+        activeContext,
+        {
+          bigCircleR: activeContext.bigCircleRMin,
+        },
+      );
+      // TODO: needs a reset here!
+    } else {
+	  const distanceDiff = Math.max(distance - activeContext.originDistance, 1);
+      this.render(
+        activeBlob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            activeContext.bigCircleH,
+            activeContext.bigCircleK,
+          ],
+          [
+            x,
+            y,
+          ],
+        ),
+        'separation',
+      );
+    }
+  }
+  onPointerMoved(x, y) {
+    this.x = x;
+    this.y = y;
+    const eventListeners = this.__getEventListeners();
+    (eventListeners[EVENT_TYPE_DRAG] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedDrag(
+            x,
+            y,
+            blob,
+          );
+          // XXX: This is used as some kind of forceUpdate()?
+          this.__doReset(blob);
+        },
+      );
+    (eventListeners[EVENT_TYPE_SEPARATE] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedSeparate(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+  }
+  // TODO: remove this call
+  __doReset(activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+    // TODO: need to call reset() here, but what does that mean in terms of deleted context? what about initial positions, etc?
+    const {
+      transform,
+      path,
+    } = this.__getResetData(
+      activeBlob.getId(),
+      activeContext,
+    );
+    this.__getCallback()
+      .updateBlob(
+        activeBlob.getId(),
+        transform,
+        0,
+        path,
+        undefined, // unknown mode...?
+      );
   }
   __shouldDeleteBlob(blob) {
     this.__setBlobs(
@@ -605,17 +669,11 @@ class BlobularCompat {
   __getCallback() {
     return this.callback;
   }
-  __setSeparating(separating) {
-    this.separating = separating;
+  __setEventListeners(eventListeners) {
+    this.eventListeners = eventListeners;
   }
-  __isSeparating() {
-    return this.separating;
-  }
-  __setActiveBlob(activeBlob) {
-    this.activeBlob = activeBlob;
-  }
-  __getActiveBlob() {
-    return this.activeBlob;
+  __getEventListeners() {
+    return this.eventListeners;
   }
 }
 
