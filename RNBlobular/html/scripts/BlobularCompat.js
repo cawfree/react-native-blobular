@@ -409,7 +409,7 @@ class BlobularCompat {
               smallCircleOriginK: otherContext.bigCircleK,
               bigCircleR: activeContext.bigCircleR,
               bigCircleH: activeContext.bigCircleH,
-              bigCircleL: activeContext.bigCircleK,
+              bigCircleK: activeContext.bigCircleK,
               bigCircleOriginH: activeContext.bigCircleOriginH,
               bigCircleOriginK: activeContext.bigCircleOriginK,
               pointerCoords: [...activeContext.pointerCoords],
@@ -777,7 +777,6 @@ class BlobularCompat {
       );
   }
   __shouldDeleteBlob(blob) {
-    console.log('deleted ' + blob.getId());
     this.__setBlobs(
       this.__getBlobs()
         .filter(
