@@ -1,5 +1,7 @@
 const EVENT_TYPE_DRAG = 'event_drag';
 const EVENT_TYPE_SEPARATE = 'event_separate';
+const EVENT_TYPE_JOIN = 'event_join';
+const EVENT_TYPE_JOIN_ALT = 'event_joinAlt';
 
 class Blob {
   constructor(id, radius, x, y, viscosity, smallestRadius) {
@@ -390,10 +392,15 @@ class BlobularCompat {
             'join',
           );
 
-          // TODO: NEED ROUTING PATTERN HERE! HOW TO DO EVENTS?
-          console.log('would join normal');
-  
-          this.__shouldDeleteBlob(activeBlob);
+          this.__addEventListener(
+            EVENT_TYPE_JOIN, // TODO needs to exist
+            otherBlob,
+          );
+          // implicit in delete (below)
+          //this.__removeEventListener(
+          //  EVENT_TYPE_DRAG,
+          //  activeBlob,
+          //);
         } else {
           Object.assign(
             otherContext,
@@ -434,12 +441,14 @@ class BlobularCompat {
             ),
             'join',
           );
-
-          // TODO: listener i/o here!
-          this.__shouldDeleteBlob(
-            activeBlob,
+          this.__addEventListener(
+            EVENT_TYPE_JOIN_ALT,
+            otherBlob,
           );
         }
+        this.__shouldDeleteBlob(
+          activeBlob,
+        );
         break;
       }
     }
@@ -469,6 +478,14 @@ class BlobularCompat {
       this.putBlob(
         detached,
       );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        detached,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_SEPARATE,
+        activeBlob,
+      );
       // TODO: Need to propagate this info (reason?) back to the caller for rendering
 	  //detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
       // TODO: requires event handling pattern here!
@@ -477,6 +494,9 @@ class BlobularCompat {
         {
           bigCircleR: activeContext.bigCircleRMin,
         },
+      );
+      this.__doReset(
+        activeBlob,
       );
       // TODO: needs a reset here!
     } else {
@@ -498,6 +518,12 @@ class BlobularCompat {
       );
     }
   }
+  __onPointerMovedJoin(x, y, blob) {
+    console.log('join');
+  }
+  __onPointerMovedJoinAlt(x, y, blob) {
+    console.log('join alt');
+  }
   onPointerMoved(x, y) {
     this.x = x;
     this.y = y;
@@ -518,6 +544,26 @@ class BlobularCompat {
       .map(
         (blob) => {
           this.__onPointerMovedSeparate(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+    (eventListeners[EVENT_TYPE_JOIN] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedJoin(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+    (eventListeners[EVENT_TYPE_JOIN_ALT] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedJoinAlt(
             x,
             y,
             blob,
@@ -557,6 +603,21 @@ class BlobularCompat {
       {
         [blob.getId()]: undefined,
       },
+    );
+    this.__setEventListeners(
+      Object.entries(this.__getEventListeners())
+        .reduce(
+          (obj, [eventType, listeners]) => {
+            return {
+              ...obj,
+              [eventType]: listeners
+                .filter(
+                  e => (e.getId() !== blob.getId()),
+                ),
+            };
+          },
+          {},
+        ),
     );
     // TODO: obviously delete all, since it would not be possible to interact
     //       or iterate against at all afterwards
