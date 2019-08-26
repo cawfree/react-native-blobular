@@ -1,95 +1,210 @@
-const SVG_NS = "http://www.w3.org/2000/svg";
-//const XLINK_NS = "http://www.w3.org/1999/xlink";
-const CENTERX = 400;
-const CENTERY = 300;
-const VISCOSITY = 75;
+const EVENT_TYPE_DRAG = 'event_drag';
+const EVENT_TYPE_SEPARATE = 'event_separate';
+const EVENT_TYPE_JOIN = 'event_join';
+const EVENT_TYPE_JOIN_ALT = 'event_joinAlt';
 
 class Blob {
-  constructor(radius, h, k) {
-    this.mousedown = this.mousedown.bind(this);
-    this.drawSomething = this.drawSomething.bind(this);
-    this.collapse = this.collapse.bind(this);
-    this.mouseupSeparate = this.mouseupSeparate.bind(this);
-    this.mousemoveSeparate = this.mousemoveSeparate.bind(this);
-    this.mousemove = this.mousemove.bind(this);
-    this.mouseup = this.mouseup.bind(this);
-    this.mousemoveJoin = this.mousemoveJoin.bind(this);
-    this.join = this.join.bind(this);
-    this.mouseupJoin = this.mouseupJoin.bind(this);
-    this.mousemoveJoinAlt = this.mousemoveJoinAlt.bind(this);
-    this.mouseupJoinAlt = this.mouseupJoinAlt.bind(this);
-    this.reset = this.reset.bind(this);
-
-    this.bigCircleR = radius;
-    this.bigCircleH = h;
-    this.bigCircleK = k;
-    this.bigCircleOriginH = h;
-    this.bigCircleOriginK = k;
-    this.mousedownCoords = [h, k];
-    this.joinCircleR = VISCOSITY;
-    this.smallCircleR = 50;
-    this.smallCircleH = 0;
-    this.smallCircleK = 0 - this.bigCircleR + this.smallCircleR - 1;
-  		
-    this.lavaPath = document.createElementNS(SVG_NS, "path");
-    this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-    this.lavaPath.objRef = this;
-  	
-    this.lavaPath.addEventListener("mousedown", this.mousedown, false);
-    document.getElementsByTagName("svg")[0].appendChild(this.lavaPath);
-    this.reset();
+  constructor(id, radius, x, y, viscosity, smallestRadius) {
+    this.id = id;
+    this.radius = radius;
+    this.x = x;
+    this.y = y;
+    this.viscosity = viscosity;
+    this.smallestRadius = smallestRadius;
   }
-  reset() {
-    this.lavaPath.setAttributeNS(
-      null, 
-      'transform',
-      `translate(${this.bigCircleH}, ${this.bigCircleK})`,
-    );
-    this.lavaPath.setAttribute(
-      'd',
-      [
-        `m 0 ${-this.bigCircleR} A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${this.bigCircleR}`,
-        `A ${this.bigCircleR} ${this.bigCircleR} 0 1 1 0 ${-this.bigCircleR}`,
-      ]
-        .join(''),
-    );
-
+  getId() {
+    return this.id;
   }
-  drawSomething(distance, angle, mode) {
-    if (mode === 'join') {
-	  this.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
+  getRadius() {
+    return this.radius;
+  }
+  getX() {
+    return this.x;
+  }
+  getY() {
+    return this.y;
+  }
+  getViscosity() {
+    return this.viscosity;
+  }
+  getSmallestRadius() {
+    return this.smallestRadius;
+  }
+}
+
+class Blobular {
+  constructor(
+    callback,
+  ) {
+    this.onPointerUp = this.onPointerUp.bind(this);
+    this.onPointerMoved = this.onPointerMoved.bind(this);
+    this.onPointerDown = this.onPointerDown.bind(this);
+    this.putBlob = this.putBlob.bind(this);
+    this.callback = callback;
+    this.x = 0;
+    this.y = 0;
+    this.blobs = [];
+    this.context = {};
+    this.eventListeners = {};
+  }
+  onPointerDown(x, y) {
+    this.x = x;
+    this.y = y;
+    const blob = this.__getBlobs()
+      .map((e, i, arr) => (arr[arr.length - 1 - i]))
+      .reduce(
+        (b, p) => {
+          const id = p
+            .getId();
+          const context = this.__getContext()[id];
+          const { 
+            bigCircleR,
+            bigCircleH,
+            bigCircleK,
+          } = context;
+          const dx = x - bigCircleH;
+          const dy = y - bigCircleK;
+          const dist = Math
+            .sqrt(
+              Math.pow(dx, 2) + Math.pow(dy, 2)
+            );
+          return b || ((dist <= bigCircleR) && p);
+        },
+        null,
+      );
+    if (blob) {
+      const context = this.__getContext()[blob.getId()];
+      const {
+        bigCircleH,
+        bigCircleK,
+        bigCircleR,
+      } = context;
+      const originDistance = Math.sqrt(
+        Math.pow(
+          x - bigCircleH,
+          2,
+        ) + Math.pow(
+          y - bigCircleK,
+          2,
+        ),
+      );
+      const smallCircleR = bigCircleR - originDistance;
+      Object.assign(
+        context,
+        {
+          bigCircleOriginH: bigCircleH,
+          bigCircleOriginK: bigCircleK,
+	      originDistance,
+          smallCircleR,
+          pointerCoords: [ // mousedownCoords
+            x,
+            y,
+          ],
+        },
+      );
+      if (originDistance < 20) {
+        this.__addEventListener(
+          EVENT_TYPE_DRAG,
+          blob,
+        );
+      } else {
+	    const bigCircleArea = Math.PI * Math.pow(
+          bigCircleR,
+          2,
+        );
+	    const smallCircleArea = Math.PI * Math.pow(
+          smallCircleR,
+          2,
+        );
+	    const afterCircleArea = bigCircleArea - smallCircleArea;
+        Object.assign(
+          context,
+          {
+            bigCircleRMax: bigCircleR,
+            bigCircleRMin: Math.sqrt(
+              afterCircleArea / Math.PI,
+            ),
+          },
+        );
+        this.__addEventListener(
+          EVENT_TYPE_SEPARATE,
+          blob,
+        );
+      }
     }
-    this.lavaPath.setAttributeNS(
-      null,
-      'transform',
-      `translate(${this.bigCircleH}, ${this.bigCircleK}) rotate(${angle}, 0, 0)`,
+  }
+  getCircleYForX(h, r, x) {
+    return Math.sqrt(
+      Math.pow(
+        r,
+        2,
+      ) - Math.pow(
+        x - h,
+        2,
+      ),
     );
-	this.smallCircleK = 0 - this.bigCircleRMax + this.smallCircleR - distance;
-
+  }
+  calculateAngle(origin, point) {
+    const angle = Math.atan((point[1] - origin[1]) / (point[0] - origin[0])) / Math.PI * 180 + 90;
+    return angle + ((point[0] < origin[0]) ? 180 : 0);
+  }
+  render(blob, distance, angle, mode) { // join, separation
+    const context = this.__getContext()[blob.getId()];
+    const {
+      bigCircleH,
+      bigCircleK,
+    } = context;
+    Object.assign(
+      context,
+      {
+        smallCircleK: - context.bigCircleRMax + context.smallCircleR - distance,
+      },
+    );
     if (mode === 'join') {
-	  this.joinCircleRMin = 1;
-	  this.joinCircleRMax = 200;
+      Object.assign(
+        context,
+        {
+          joinCircleRMin: 1,
+          joinCircleRMax: 200,
+        },
+      );
     } else if (mode === 'separation') {
-	  this.joinCircleR = VISCOSITY;
+      Object.assign(
+        context,
+        {
+          joinCircleR: blob.getViscosity(),
+        },
+      );
     }
-
-    const startK = (mode === 'join') ? 0 - this.bigCircleRMin - this.smallCircleR : 0 - this.bigCircleRMax + this.smallCircleR - 1;
-	const finalK = (mode === 'join') ? 0 - this.bigCircleRMax + this.smallCircleR - 1: 0 - this.bigCircleRMin - this.joinCircleR * 2 - this.smallCircleR;
+    const startK = (mode === 'join') ? - context.bigCircleRMin - context.smallCircleR : - context.bigCircleRMax + context.smallCircleR - 1;
+	const finalK = (mode === 'join') ? - context.bigCircleRMax + context.smallCircleR - 1: - context.bigCircleRMin - context.joinCircleR * 2 - context.smallCircleR;
 	const differenceK = startK - finalK;
-    const currDifferenceK = this.smallCircleK - finalK;
+    const currDifferenceK = context.smallCircleK - finalK;
 	const differencePercentage = currDifferenceK / differenceK;
 
     if (mode === 'join') {
-	  this.bigCircleR = this.bigCircleRMax - (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
-	  this.joinCircleR = this.joinCircleRMax - (this.joinCircleRMax - this.joinCircleRMin) * differencePercentage;
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMax - (context.bigCircleRMax - context.bigCircleRMin) * differencePercentage,
+          joinCircleR: context.joinCircleRMax - (context.joinCircleRMax - context.joinCircleRMin) * differencePercentage,
+        },
+      );
     } else if (mode === 'separation') {
-	  this.bigCircleR = this.bigCircleRMin + (this.bigCircleRMax - this.bigCircleRMin) * differencePercentage;
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin + (context.bigCircleRMax - context.bigCircleRMin) * differencePercentage,
+        },
+      );
     }
-	
-    const triangleA = this.bigCircleR + this.joinCircleR; // Side a
-	const triangleB = this.smallCircleR + this.joinCircleR; // Side b
-	const triangleC = Math.abs(this.smallCircleK); // Side c
-	const triangleP = (triangleA + triangleB + triangleC) / 2; // Triangle half perimeter
+
+    const triangleA = context.bigCircleR + context.joinCircleR;
+	const triangleB = context.smallCircleR + context.joinCircleR;
+	const triangleC = Math.abs(
+      context.smallCircleK,
+    );
+	const triangleP = (triangleA + triangleB + triangleC) * 0.5;
 
     const e = (triangleP * (triangleP - triangleA) * (triangleP - triangleB) * (triangleP - triangleC));
     const triangleArea = Math.sqrt(mode === 'join' ? e : Math.abs(e));
@@ -101,325 +216,759 @@ class Blob {
     const bigCircleTan = triangleH / triangleD;
 	const bigCircleAngle = Math.atan(bigCircleTan);
 	const bigCircleSin = Math.sin(bigCircleAngle);
-	const bigCircleIntersectX = bigCircleSin * this.bigCircleR;
+	const bigCircleIntersectX = bigCircleSin * context.bigCircleR;
 	const bigCircleCos = Math.cos(bigCircleAngle);
-	const bigCircleIntersectY = bigCircleCos * this.bigCircleR;
+	const bigCircleIntersectY = bigCircleCos * context.bigCircleR;
 
-	const joinCircleH = bigCircleSin * (this.bigCircleR + this.joinCircleR);
-	const joinCircleK = -bigCircleCos * (this.bigCircleR + this.joinCircleR);
+    const joinCircleH = bigCircleSin * (context.bigCircleR + context.joinCircleR);
+	const joinCircleK = -bigCircleCos * (context.bigCircleR + context.joinCircleR);
 
     const coord1X = -bigCircleIntersectX;
 	const coord1Y = -bigCircleIntersectY;
 	const coord2X = bigCircleIntersectX;
 	const coord2Y = -bigCircleIntersectY;
 
-    const smallCircleTan = (this.smallCircleK - joinCircleK) / (this.smallCircleH - joinCircleH);
+    const smallCircleTan = (context.smallCircleK - joinCircleK) / (context.smallCircleH - joinCircleH);
 	const smallCircleAngle = Math.atan(smallCircleTan);
-	const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (this.joinCircleR);
-	const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (this.joinCircleR);
+	const smallCircleIntersectX = joinCircleH - Math.cos(smallCircleAngle) * (context.joinCircleR);
+	const smallCircleIntersectY = joinCircleK - Math.sin(smallCircleAngle) * (context.joinCircleR);
 
-    const x = joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK;
-	const crossOverY = getCircleYForX(joinCircleH, this.joinCircleR, 0);
-    const largeArcFlag = (joinCircleK < this.smallCircleK) ? 0 : 1;
-    const isOverlap = (joinCircleH - this.joinCircleR <= 0 && this.smallCircleK < joinCircleK);
+    const x = joinCircleH - context.joinCircleR <= 0 && context.smallCircleK < joinCircleK;
+	const crossOverY = this.getCircleYForX(
+      joinCircleH,
+      context.joinCircleR,
+      0,
+    );
+    const largeArcFlag = (joinCircleK < context.smallCircleK) ? 0 : 1;
+    const isOverlap = (joinCircleH - context.joinCircleR <= 0 && context.smallCircleK < joinCircleK);
 
-	this.lavaPath.setAttribute(
-      'd',
-      [
-        "M " + coord1X + " " + coord1Y + " A " + this.bigCircleR + " " + this.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
-        (!!x) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
-        (!!x) && "m 0 -" + (crossOverY * 2),
-        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
-        "a " + this.smallCircleR + " " + this.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
-        (!!isOverlap) && "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
-        (!!isOverlap) && "m 0 " + (crossOverY * 2),
-        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-        "A " + this.joinCircleR + " " + this.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
-      ]
-        .filter(e => !!e)
-        .join(),
+    const path = [
+      "M " + coord1X + " " + coord1Y + " A " + context.bigCircleR + " " + context.bigCircleR + " 0 1 0 " + coord2X + " " + coord2Y,
+      (!!x) && "A " + context.joinCircleR + " " + context.joinCircleR + " 0 0 1 0 " + (joinCircleK + crossOverY),
+      (!!x) && "m 0 -" + (crossOverY * 2),
+      "A " + context.joinCircleR + " " + context.joinCircleR + " 0 0 1 " + smallCircleIntersectX + " " + smallCircleIntersectY,
+      "a " + context.smallCircleR + " " + context.smallCircleR + " 0 " + largeArcFlag + " 0 " + (smallCircleIntersectX * -2) + " 0",
+      (!!isOverlap) && "A " + context.joinCircleR + " " + context.joinCircleR + " 0 0 1 0 " + (joinCircleK - crossOverY),
+      (!!isOverlap) && "m 0 " + (crossOverY * 2),
+      "A " + context.joinCircleR + " " + context.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+      "A " + context.joinCircleR + " " + context.joinCircleR + " 0 0 1 " + coord1X + " " + coord1Y,
+    ]
+      .filter(e => !!e)
+      .join();
+    return this.__getCallback()
+      .updateBlob(
+        blob.getId(),
+        [
+          bigCircleH,
+          bigCircleK,
+        ],
+        angle,
+        path,
+        mode,
     );
   }
-  collapse(coords) {
-    const increment = VISCOSITY / 4;
-	const newK = this.smallCircleK + increment;
-    if (newK > -this.bigCircleR + this.smallCircleR - 1) {
-	  this.bigCircleR = this.bigCircleRMax;
-	  this.reset();
-	} else {
-	  const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-	  const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
-	  this.drawSomething(
-        distance,
-        angle, 
+  __addEventListener(eventType, blob) {
+    const existing = this.__getEventListeners[eventType] || [];
+    if (existing.indexOf(blob) < 0) {
+      return this.__setEventListeners(
+        {
+          ...this.__getEventListeners(),
+          [eventType]: [
+            ...existing,
+            blob,
+          ],
+        },
+      );
+    }
+    throw new Error(
+      `Blob "${blob.getId()} is already configured to listen to the ${eventType} event!"`,
+    );
+  }
+  __removeEventListener(eventType, blob) {
+    const existing = this.__getEventListeners()[eventType];
+    if (existing) {
+      return this.__setEventListeners(
+        {
+          ...this.__getEventListeners(),
+          [eventType]: existing
+            .filter(
+              e => (e.getId() !== blob.getId()),
+            ),
+        },
+      );
+    }
+    throw new Error(
+      `Attempted to unregister a listener for ${eventType}, when none have been allocated.`,
+    );
+  }
+  __onPointerMovedDrag(x, y, activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+    const {
+      bigCircleOriginH,
+      bigCircleOriginK,
+      pointerCoords,
+    } = activeContext;
+    Object.assign(
+      activeContext,
+      {
+        bigCircleH: bigCircleOriginH + x - pointerCoords[0],
+        bigCircleK: bigCircleOriginK + y - pointerCoords[1],
+      },
+    );
+    const {
+      bigCircleH,
+      bigCircleK,
+      bigCircleR,
+    } = activeContext;
+    const otherBlobs = this.__getBlobs()
+      .filter(e => e.getId() !== activeBlob.getId());
+    for (let i = 0; i < otherBlobs.length; i += 1) {
+      const otherBlob = otherBlobs[i];
+      const otherContext = this.__getContext()[otherBlob.getId()];
+	  const distance = Math.sqrt(
+        Math.pow(
+          bigCircleH - otherContext.bigCircleH,
+          2,
+        ) + Math.pow(
+          bigCircleK - otherContext.bigCircleK,
+          2,
+        ),
+      );
+      if (distance < bigCircleR + otherContext.bigCircleR) {
+        const bigCircleArea = Math.PI * Math.pow(
+          otherContext.bigCircleR,
+          2,
+        );
+        const smallCircleArea = Math.PI * Math.pow(
+          bigCircleR,
+          2,
+        );
+        const afterCircleArea = bigCircleArea + smallCircleArea;
+        if (bigCircleR < otherContext.bigCircleR) {
+          Object.assign(
+            otherContext,
+            {
+              bigCircleRMin: otherContext.bigCircleR,
+              bigCircleRMax: Math.sqrt(
+                afterCircleArea / Math.PI,
+              ),
+              smallCircleR: activeContext.bigCircleR,
+              smallCircleOriginH: activeContext.bigCircleOriginH,
+              smallCircleOriginK: activeContext.bigCircleOriginK,
+              pointerCoords,
+            },
+          );
+	      const distanceDiff = Math.max(
+            distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
+            1,
+          );
+          this.render(
+            otherBlob,
+            distanceDiff,
+            this.calculateAngle(
+              [
+                otherContext.bigCircleH,
+                otherContext.bigCircleK,
+              ],
+              [
+                activeContext.bigCircleH,
+                activeContext.bigCircleK,
+              ],
+            ),
+            'join',
+          );
+          this.__addEventListener(
+            EVENT_TYPE_JOIN, // TODO needs to exist
+            otherBlob,
+          );
+        } else {
+          Object.assign(
+            otherContext,
+            {
+              bigCircleRMin: activeContext.bigCircleR,
+              bigCircleRMax: Math.sqrt(
+                afterCircleArea / Math.PI,
+              ),
+              smallCircleR: otherContext.bigCircleR,
+              smallCircleOriginH: otherContext.bigCircleH,
+              smallCircleOriginK: otherContext.bigCircleK,
+              bigCircleR: activeContext.bigCircleR,
+              bigCircleH: activeContext.bigCircleH,
+              bigCircleK: activeContext.bigCircleK,
+              bigCircleOriginH: activeContext.bigCircleOriginH,
+              bigCircleOriginK: activeContext.bigCircleOriginK,
+              pointerCoords,
+            },
+          );
+
+	      const distanceDiff = Math.max(
+            distance - otherContext.bigCircleRMax + otherContext.smallCircleR,
+            1,
+          );
+
+          this.render(
+            otherBlob,
+            distanceDiff,
+            this.calculateAngle(
+              [
+                otherContext.bigCircleH,
+                otherContext.bigCircleK,
+              ],
+              [
+                otherContext.smallCircleOriginH,
+                otherContext.smallCircleOriginK,
+              ],
+            ),
+            'join',
+          );
+          this.__addEventListener(
+            EVENT_TYPE_JOIN_ALT,
+            otherBlob,
+          );
+        }
+        this.__shouldDeleteBlob(
+          activeBlob,
+        );
+        return;
+      }
+    }
+    this.__doReset(activeBlob);
+  }
+  __onPointerMovedSeparate(x, y, activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+	const distance = Math.sqrt(
+      Math.pow(
+        x - activeContext.bigCircleH,
+        2,
+      ) + Math.pow(
+        y - activeContext.bigCircleK,
+        2,
+      ),
+    );
+	if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
+      const detached = new Blob(
+        `detached-${Math.random()}`,
+        activeContext.smallCircleR,
+        x,
+        y,
+        activeBlob.getViscosity(),
+        activeBlob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        detached,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_SEPARATE,
+        activeBlob,
+      );
+      Object.assign(
+        activeContext,
+        {
+          bigCircleR: activeContext.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        activeBlob,
+      );
+    } else {
+	  const distanceDiff = Math.max(distance - activeContext.originDistance, 1);
+      this.render(
+        activeBlob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            activeContext.bigCircleH,
+            activeContext.bigCircleK,
+          ],
+          [
+            x,
+            y,
+          ],
+        ),
         'separation',
       );
-      setTimeout(
-        () => this.collapse(coords),
-        10,
-      );
-	}
+    }
   }
-  join(coords) {
-    const increment = 20;
-	const newK = this.smallCircleK + increment;
-    if (newK > -this.bigCircleR + this.smallCircleR - 1) {
-      this.bigCircleR = this.bigCircleRMax;
-      this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-      this.reset();
+  __onPointerMovedJoin(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const distance = Math.sqrt(
+      Math.pow(
+        context.smallCircleOriginH + x - context.pointerCoords[0] - context.bigCircleH,
+        2,
+      ) + Math.pow(
+        context.smallCircleOriginK + y - context.pointerCoords[1] - context.bigCircleK,
+        2,
+      ),
+    );
+    if (distance > context.bigCircleRMin + context.smallCircleR) {
+      const detached = new Blob(
+        `join-detach-${Math.random()}`,
+        context.smallCircleR,
+        x,
+        y,
+        blob.getViscosity(),
+        blob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        detached,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_JOIN,
+        blob,
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
     } else {
-      const distance = -newK - (this.bigCircleRMax - this.smallCircleR);
-      const angle = calculateAngle([this.bigCircleH, this.bigCircleK], coords);
-      this.drawSomething(
+	  const distanceDiff = Math.max(
+        distance - context.bigCircleRMax + context.smallCircleR,
+        1,
+      );
+      this.render(
+        blob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            context.bigCircleH,
+            context.bigCircleK,
+          ],
+          [
+            context.smallCircleOriginH + x - context.pointerCoords[0],
+            context.smallCircleOriginK + y - context.pointerCoords[1],
+          ],
+        ),
+        'join',
+      );
+    }
+  }
+  __onPointerMovedJoinAlt(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    Object.assign(
+      context,
+      {
+        bigCircleH: context.bigCircleOriginH + x - context.pointerCoords[0],
+        bigCircleK: context.bigCircleOriginK + y - context.pointerCoords[1],
+      },
+    );
+
+    const distance = Math.sqrt(
+      Math.pow(
+        context.bigCircleH - context.smallCircleOriginH,
+        2,
+      ) + Math.pow(
+        context.bigCircleK - context.smallCircleOriginK,
+        2,
+      ),
+    );
+
+	if (distance > context.bigCircleRMin + context.smallCircleR) {
+      const detached = new Blob(
+        `detached-join-alt-${Math.random()}`,
+        context.smallCircleR,
+        context.smallCircleOriginH,
+        context.smallCircleOriginK,
+        blob.getViscosity(),
+        blob.getSmallestRadius(),
+      );
+      this.putBlob(
+        detached,
+      );
+      this.__addEventListener(
+        EVENT_TYPE_DRAG,
+        blob,
+      );
+      this.__removeEventListener(
+        EVENT_TYPE_JOIN_ALT,
+        blob,
+      );
+      Object.assign(
+        context,
+        {
+          bigCircleR: context.bigCircleRMin,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
+    } else {
+	  const distanceDiff = Math.max(
+        distance - context.bigCircleRMax + context.smallCircleR,
+        1,
+      );
+      this.render(
+        blob,
+        distanceDiff,
+        this.calculateAngle(
+          [
+            context.bigCircleH,
+            context.bigCircleK,
+          ],
+          [
+            context.smallCircleOriginH,
+            context.smallCircleOriginK,
+          ],
+        ),
+        'join',
+      );
+    }
+  }
+  onPointerMoved(x, y) {
+    this.x = x;
+    this.y = y;
+    const eventListeners = this.__getEventListeners();
+    (eventListeners[EVENT_TYPE_DRAG] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedDrag(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+    (eventListeners[EVENT_TYPE_SEPARATE] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedSeparate(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+    (eventListeners[EVENT_TYPE_JOIN] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedJoin(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+    (eventListeners[EVENT_TYPE_JOIN_ALT] || [])
+      .map(
+        (blob) => {
+          this.__onPointerMovedJoinAlt(
+            x,
+            y,
+            blob,
+          );
+        },
+      );
+  }
+  __doReset(activeBlob) {
+    const activeContext = this.__getContext()[activeBlob.getId()];
+    const {
+      transform,
+      path,
+    } = this.__getResetData(
+      activeBlob.getId(),
+      activeContext,
+    );
+    this.__getCallback()
+      .updateBlob(
+        activeBlob.getId(),
+        transform,
+        null,
+        path,
+        undefined,
+      );
+  }
+  __shouldDeleteBlob(blob) {
+    this.__setBlobs(
+      this.__getBlobs()
+        .filter(
+          e => (e.getId() !== blob.getId()),
+        ),
+    );
+    Object.assign(
+      this.__getContext(),
+      {
+        [blob.getId()]: null,
+      },
+    );
+    this.__setEventListeners(
+      Object.entries(this.__getEventListeners())
+        .reduce(
+          (obj, [eventType, listeners]) => {
+            return {
+              ...obj,
+              [eventType]: listeners
+                .filter(
+                  e => (e.getId() !== blob.getId()),
+                ),
+            };
+          },
+          {},
+        ),
+    );
+    this.__getCallback()
+      .deleteBlob(
+        blob
+          .getId(),
+      );
+  }
+  __onPointerUpDrag(x, y, blob) {
+    this.__removeEventListener(
+      EVENT_TYPE_DRAG,
+      blob,
+    );
+  }
+  __onPointerUpSeparate(x, y, blob) {
+    this.__collapse(
+      x,
+      y,
+      blob,
+    );
+    this.__removeEventListener(
+      EVENT_TYPE_SEPARATE,
+      blob,
+    );
+  }
+  __onPointerUpJoin(x, y, blob) {
+    this.__join(
+      x,
+      y,
+      blob,
+    );
+    this.__removeEventListener(
+      EVENT_TYPE_JOIN,
+      blob,
+    );
+  }
+  __onPointerUpJoinAlt(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    this.__join(
+      context.smallCircleOriginH,
+      context.smallCircleOriginK,
+      blob,
+    );
+    this.__removeEventListener(
+      EVENT_TYPE_JOIN_ALT,
+      blob,
+    );
+  }
+  // TODO: provide the callback with an iterator
+  __join(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const increment = 20;
+	const newK = context.smallCircleK + increment;
+    if (newK > -context.bigCircleR + context.smallCircleR - 1) {
+      const { bigCircleRMax } = context;
+      Object.assign(
+        context,
+        {
+          bigCircleR: bigCircleRMax,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
+    } else {
+      const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
+      const angle = this.calculateAngle(
+        [
+          context.bigCircleH,
+          context.bigCircleK,
+        ],
+        [
+          x,
+          y,
+        ],
+      );
+      this.render(
+        blob,
         distance,
         angle,
-        'join'
+        'join',
       );
       setTimeout(
-        () => this.join(coords),
+        () => this.__join(x, y, blob),
         10,
       );
     }
   }
-  mousedown(event) {
-    this.mousedownCoords = coordsGlobalToSVG(event.clientX, event.clientY);
-	this.bigCircleOriginH = this.bigCircleH;
-	this.bigCircleOriginK = this.bigCircleK;
-	this.originDistance = Math.sqrt(Math.pow(this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.mousedownCoords[1] - this.bigCircleK, 2));
-	this.smallCircleR = this.bigCircleR - this.originDistance;
-
-	/* If click in centre, move blob instead of separating */
-	if (this.originDistance < 20) {
-	  document.addEventListener("mousemove", this.mousemove, false);
-	  document.addEventListener("mouseup", this.mouseup, false);
+  __collapse(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const increment = blob.getViscosity() / 4;
+	const newK = context.smallCircleK + increment;
+    if (newK > -context.bigCircleR + context.smallCircleR - 1) {
+      const { bigCircleRMax } = context;
+      Object.assign(
+        context,
+        {
+          bigCircleR: bigCircleRMax,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
 	} else {
-	  const bigCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
-	  const smallCircleArea = Math.PI * Math.pow(this.smallCircleR, 2);
-	  const afterCircleArea = bigCircleArea - smallCircleArea;
-	  this.bigCircleRMax = this.bigCircleR;
-	  this.bigCircleRMin = Math.sqrt(afterCircleArea / Math.PI);
-	  document.addEventListener("mousemove", this.mousemoveSeparate, false);
-	  document.addEventListener("mouseup", this.mouseupSeparate, false);
+	  const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
+	  const angle = this.calculateAngle(
+        [
+          context.bigCircleH,
+          context.bigCircleK,
+        ],
+        [
+          x,
+          y,
+        ],
+      );
+      this.render(
+        blob,
+        distance,
+        angle,
+        'separation',
+      );
+      setTimeout(
+        () => this.__collapse(x, y, blob),
+        10,
+      );
 	}
-    suppressPropagation(event);
   }
-  mousemove(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-	this.lavaPath.setAttributeNS(null, "class", "lavaPath");
+  onPointerUp(x, y) {
+    this.x = x;
+    this.y = y;
+    const eventListeners = this.__getEventListeners();
+    (eventListeners[EVENT_TYPE_DRAG] || [])
+      .map(
+        blob => this.__onPointerUpDrag(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_SEPARATE] || [])
+      .map(
+        blob => this.__onPointerUpSeparate(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_JOIN] || [])
+      .map(
+        blob => this.__onPointerUpJoin(x, y, blob),
+      );
+    (eventListeners[EVENT_TYPE_JOIN_ALT] || [])
+      .map(
+        blob => this.__onPointerUpJoinAlt(x, y, blob),
+      );
 
-	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
-	this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
-		
-	const paths = document.getElementsByTagName("path");
-
-	for (let i = 0; i < paths.length; i += 1) {
-	  const objRef = paths[i].objRef;
-	  const distance = Math.sqrt(Math.pow(this.bigCircleH - objRef.bigCircleH, 2) + Math.pow(this.bigCircleK - objRef.bigCircleK, 2))
-	  if (paths[i] != this.lavaPath && distance < this.bigCircleR + objRef.bigCircleR) {
-		const bigCircleArea = Math.PI * Math.pow(objRef.bigCircleR, 2);
-		const smallCircleArea = Math.PI * Math.pow(this.bigCircleR, 2);
-		const afterCircleArea = bigCircleArea + smallCircleArea;
-		if (this.bigCircleR < objRef.bigCircleR) {
-		  objRef.bigCircleRMin = objRef.bigCircleR;
-		  objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-		  objRef.smallCircleR = this.bigCircleR;
-		  objRef.smallCircleOriginH = this.bigCircleOriginH;
-		  objRef.smallCircleOriginK = this.bigCircleOriginK;
-		  objRef.mousedownCoords = this.mousedownCoords;
-
-		  const distanceDiff = Math.max(distance - objRef.bigCircleRMax + objRef.smallCircleR, 1);
-		  
-          objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[this.bigCircleH, this.bigCircleK]), 'join');
-
-		  document.addEventListener("mousemove", objRef.mousemoveJoin, false);
-		  document.addEventListener("mouseup", objRef.mouseupJoin, false);
-		  document.removeEventListener("mousemove", this.mousemove, false);
-		  document.removeEventListener("mouseup", this.mouseup, false);
-
-		  this.lavaPath.parentNode.removeChild(this.lavaPath);
-		} else {
-		  objRef.bigCircleRMin = this.bigCircleR;
-		  objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-		  objRef.smallCircleR = objRef.bigCircleR;
-		  objRef.smallCircleOriginH = objRef.bigCircleH;
-		  objRef.smallCircleOriginK = objRef.bigCircleK;
-		  objRef.bigCircleR = this.bigCircleR;
-		  objRef.bigCircleH = this.bigCircleH;
-		  objRef.bigCircleK = this.bigCircleK;
-		  objRef.bigCircleOriginH = this.bigCircleOriginH;
-		  objRef.bigCircleOriginK = this.bigCircleOriginK;
-		  objRef.mousedownCoords = this.mousedownCoords;
-
-		  const distanceDiff = Math.max(distance - objRef.bigCircleRMax + objRef.smallCircleR, 1);
-
-		  objRef.drawSomething(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[objRef.smallCircleOriginH, objRef.smallCircleOriginK]), 'join');
-
-		  document.addEventListener("mousemove", objRef.mousemoveJoinAlt, false);
-		  document.addEventListener("mouseup", objRef.mouseupJoinAlt, false);
-		  document.removeEventListener("mousemove", this.mousemove, false);
-		  document.removeEventListener("mouseup", this.mouseup, false);
-
-		  this.lavaPath.parentNode.removeChild(this.lavaPath);
-		}
-		break;
-	  }
-	}
-	this.reset();
-    suppressPropagation(event);
   }
-  mousemoveSeparate(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-	const distance = Math.sqrt(Math.pow(coords[0] - this.bigCircleH, 2) + Math.pow(coords[1] - this.bigCircleK, 2));
-	if (distance > this.bigCircleR + this.joinCircleR * 2 + this.smallCircleR) {
-	  const detached = new Blob(this.smallCircleR, coords[0], coords[1]);
-	  detached.lavaPath.setAttributeNS(null, "class", "lavaPath joining");
-	  document.addEventListener("mousemove", detached.mousemove, false);
-	  document.addEventListener("mouseup", detached.mouseup, false);
-	  document.removeEventListener("mousemove", this.mousemoveSeparate, false);
-	  document.removeEventListener("mouseup", this.mouseupSeparate, false);
-	  this.bigCircleR = this.bigCircleRMin;			
-	  this.reset();
-	} else {
-	  const distanceDiff = Math.max(distance - this.originDistance, 1);
-	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], coords), 'separation');
-	}
-    suppressPropagation(event);
-  }
-  mousemoveJoin(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-	const distance = Math.sqrt(Math.pow(this.smallCircleOriginH + coords[0] - this.mousedownCoords[0] - this.bigCircleH, 2) + Math.pow(this.smallCircleOriginK + coords[1] - this.mousedownCoords[1] - this.bigCircleK, 2));
-
-	if (distance > this.bigCircleRMin + this.smallCircleR) {
-	  const detached = new Blob(this.smallCircleR, coords[0], coords[1]);
-	  document.addEventListener("mousemove", detached.mousemove, false);
-	  document.addEventListener("mouseup", detached.mouseup, false);
-	  document.removeEventListener("mousemove", this.mousemoveJoin, false);
-	  document.removeEventListener("mouseup", this.mouseupJoin, false);
-	  this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-	  this.bigCircleR = this.bigCircleRMin;			
-	  this.reset();
-	} else {
-	  const distanceDiff = Math.max(distance - this.bigCircleRMax + this.smallCircleR, 1);
-	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH + coords[0] - this.mousedownCoords[0], this.smallCircleOriginK + coords[1] - this.mousedownCoords[1]]), 'join');
-	}
-    suppressPropagation(event);
-  }
-  mousemoveJoinAlt(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-
-	this.bigCircleH = this.bigCircleOriginH + coords[0] - this.mousedownCoords[0];
-	this.bigCircleK = this.bigCircleOriginK + coords[1] - this.mousedownCoords[1];
-
-    const distance = Math.sqrt(Math.pow(this.bigCircleH - this.smallCircleOriginH, 2) + Math.pow(this.bigCircleK - this.smallCircleOriginK, 2));
-
-	if (distance > this.bigCircleRMin + this.smallCircleR) {
-	  const detached = new Blob(this.smallCircleR, this.smallCircleOriginH, this.smallCircleOriginK);
-			
-	  document.addEventListener("mousemove", this.mousemove, false);
-	  document.addEventListener("mouseup", this.mouseup, false);
-	  document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
-	  document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
-	  this.bigCircleR = this.bigCircleRMin;			
-	  this.reset();
-	} else {
-	  const distanceDiff = Math.max(distance - this.bigCircleRMax + this.smallCircleR, 1);
-	  this.drawSomething(distanceDiff, calculateAngle([this.bigCircleH, this.bigCircleK], [this.smallCircleOriginH, this.smallCircleOriginK]), 'join');
-	}
-    suppressPropagation(event);
-  }
-  mouseup(event) {
-    this.lavaPath.setAttributeNS(null, "class", "lavaPath");
-	document.removeEventListener("mousemove", this.mousemove, false);
-	document.removeEventListener("mouseup", this.mouseup, false);
-    suppressPropagation(event);
-  }
-  mouseupSeparate(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-	this.collapse(coords);
-	document.removeEventListener("mousemove", this.mousemoveSeparate, false);
-	document.removeEventListener("mouseup", this.mouseupSeparate, false);
-    suppressPropagation(event);
-  }
-  mouseupJoin(event) {
-    const coords = coordsGlobalToSVG(event.clientX, event.clientY);
-	this.join(coords);
-	document.removeEventListener("mousemove", this.mousemoveJoin, false);
-	document.removeEventListener("mouseup", this.mouseupJoin, false);
-    suppressPropagation(event);
-  }
-  mouseupJoinAlt(event) {
-    this.join(
-      [
-        this.smallCircleOriginH,
-        this.smallCircleOriginK,
-      ],
+  putBlob(blob) {
+    const id = blob
+      .getId();
+    if (typeof id !== 'string') {
+      throw new Error(
+        `Expected string id, found ${typeof id}.`,
+      );
+    }
+    const available = this.__getBlobs()
+      .reduce(
+        (result, blob) => result && (
+          blob.getId() !== id
+        ),
+        true,
+      );
+    if (available) {
+      this.__setBlobs(
+        [
+          ...this.__getBlobs(),
+          blob,
+        ],
+      );
+      const blobContext = this.__createBlobContext(
+        blob,
+      );
+      this.__setContext(
+        {
+          ...this.__getContext(),
+          [id]: blobContext,
+        },
+      );
+      const {
+        transform,
+        path,
+      } = this.__getResetData(
+        id,
+        blobContext,
+      );
+      const { createBlob } = this.__getCallback();
+      return createBlob(
+        id,
+        transform,
+        path,
+      );
+    }
+    throw new Error(
+      `Attempted to allocate a blob with an existing identifier, "${id}".`,
     );
-	document.removeEventListener("mousemove", this.mousemoveJoinAlt, false);
-	document.removeEventListener("mouseup", this.mouseupJoinAlt, false);
-    suppressPropagation(event);
+  }
+  __setBlobs(blobs) {
+    this.blobs = blobs;
+  }
+  __getBlobs() {
+    return this.blobs;
+  }
+  __createBlobContext(blob) {
+    return {
+      bigCircleR: blob.getRadius(),
+      bigCircleH: blob.getX(),
+      bigCircleK: blob.getY(),
+      bigCircleOriginH: blob.getX(),
+      bigCircleOriginK: blob.getY(),
+      joinCircleR: blob.getViscosity(),
+      smallCircleR: blob.getSmallestRadius(),
+      smallCircleH: 0,
+      smallCircleK: - blob.getRadius() + blob.getSmallestRadius() - 1,
+      pointerCoords: [
+        blob.getX(),
+        blob.getY(),
+      ],
+    };
+  }
+  __getResetData(blobId, blobContext) {
+    const {
+      bigCircleH,
+      bigCircleK,
+      bigCircleR,
+    } = blobContext;
+    const transform = [
+      bigCircleH,
+      bigCircleK,
+    ];
+    const path = [
+      `m 0 ${-bigCircleR} A ${bigCircleR} ${bigCircleR} 0 1 1 0 ${bigCircleR}`,
+      `A ${bigCircleR} ${bigCircleR} 0 1 1 0 ${-bigCircleR}`,
+    ]
+      .join('');
+    return {
+      transform,
+      path,
+    };
+  }
+  __setContext(context) {
+    this.context = context;
+  }
+  __getContext() {
+    return this.context;
+  }
+  __getCallback() {
+    return this.callback;
+  }
+  __setEventListeners(eventListeners) {
+    this.eventListeners = eventListeners;
+  }
+  __getEventListeners() {
+    return this.eventListeners;
   }
 }
-
-const suppressPropagation = (e) => {
-  e.stopPropagation();
-  e.preventDefault();
-};
-
-function coordsGlobalToSVG(globalX, globalY) {
-  const svg = document.getElementsByTagName("svg")[0];
-  const viewBox = svg.viewBox.baseVal;
-  const viewBoxWidth = viewBox.width;
-  const viewBoxHeight = viewBox.height;
-  const viewBoxRatio = viewBoxWidth / viewBoxHeight;
-  const viewportSize = getViewportSize();
-  const viewportRatio = viewportSize[0] / viewportSize[1];
-	
-  if (viewBoxRatio <= viewportRatio) {
-	const viewBoxGlobalWidth = viewBoxWidth * (viewportSize[1] / viewBoxHeight);
-	const viewBoxGlobalOriginX = (viewportSize[0] - viewBoxGlobalWidth) / 2;
-    return [
-      (globalX - viewBoxGlobalOriginX) * (viewBoxHeight / viewportSize[1]),
-      globalY * (viewBoxHeight / viewportSize[1]),
-    ];
-  } else {
-	const viewBoxGlobalHeight = viewBoxHeight * (viewportSize[0] / viewBoxWidth);		
-	const viewBoxGlobalOriginY = (viewportSize[1] - viewBoxGlobalHeight) / 2;
-    return [
-      globalX * (viewBoxWidth / viewportSize[0]),
-      (globalY - viewBoxGlobalOriginY) * (viewBoxWidth / viewportSize[0]),
-    ];
-  }
-  return [0, 0];
-};
-
-const getCircleYForX = (h, r, x) => Math.sqrt(Math.pow(r, 2) - Math.pow(x - h, 2));
-
-const calculateAngle = (origin, point) => {
-  const angle = Math.atan((point[1] - origin[1]) / (point[0] - origin[0])) / Math.PI * 180 + 90;
-  return angle + ((point[0] < origin[0]) ? 180 : 0);
-}
-
-const getViewportSize = () => {
-  if (typeof window.innerWidth != 'undefined') {
-	return [
-      window.innerWidth,
-      window.innerHeight,
-    ];
-  } else if (typeof document.documentElement != 'undefined'	&& typeof document.documentElement.clientWidth != 'undefined'	&& document.documentElement.clientWidth != 0) {
-	return [
-      document.documentElement.clientWidth,
-      document.documentElement.clientHeight,
-    ];
-  }
-  return [0, 0];
-};
-
-window.addEventListener(
-  'load',
-  () => new Blob(
-    200,
-    CENTERX,
-    CENTERY,
-  ),
-  false,
-);

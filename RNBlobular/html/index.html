@@ -2,10 +2,44 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
   	<title>Blobular</title>
-  	<link rel="stylesheet" href="css/html.css" />
-  	<link rel="stylesheet" href="css/svg.css" />
-    <!--<script type="text/javascript" src="scripts/blobular.js"></script>-->
-  	<script type="text/javascript" src="scripts/BlobularCompat.js"></script>
+    <style>
+      body, dd, dl, dt, fieldset, form, h1, h2, h3, h4, h5, h6, li, ol, p, ul {
+        margin: 0;
+        border: 0 none #FFFFFF;
+        padding: 0;
+      }
+      html {
+        height: 100%;
+      }
+      body {
+        height: 100%;
+        overflow: hidden;
+        background-position: 50% 50%;
+        color: #FFFFFF;
+        line-height: 1.4;
+        font-family: Verdana, Helvetica, sans-serif;
+        font-size: 80%;
+        text-align: center;
+      }
+    </style>
+    <style>
+      svg {
+        position: relative;
+        z-index: 1;
+      }
+      .blob {
+        fill: #00FF00;
+        opacity: 0.8;
+        cursor: move;
+      }
+      .joining, .blob:hover {
+        stroke-width: 1px;
+        stroke: #FFFFFF;
+      }
+    </style>
+
+  	<script type="text/javascript" src="scripts/Blobular.js"></script>
+  	<script type="text/javascript" src="scripts/BlobularCompat.html.js"></script>
   </head>
   <body>
     <svg 
