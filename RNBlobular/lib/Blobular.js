@@ -245,6 +245,7 @@ class Blobular {
     ]
       .filter(e => !!e)
       .join();
+
     return this.__getCallback()
       .updateBlob(
         blob.getId(),

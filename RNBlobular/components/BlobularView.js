@@ -85,65 +85,60 @@ class BlobularView extends React.Component {
       .putBlob(
         new Blob(
           uuidv4(),
-          200,
+          100,
           75,
           50,
         ),
         width * 0.5,
         height * 0.5,
       );
+  blobular
+      .putBlob(
+        new Blob(
+          uuidv4(),
+          150,
+          75,
+          50,
+        ),
+        width * 0.25,
+        height * 0.25,
+      );
+blobular
+      .putBlob(
+        new Blob(
+          uuidv4(),
+          150,
+          75,
+          50,
+        ),
+        width * 0.75,
+        height * 0.75,
+      );
   }
   __createBlob(withId, withTransform, withPath) {
     const { blobs } = this.state;
-    this.setState(
-      {
-        blobs: {
-          ...blobs,
-          [withId]: {
-            withTransform,
-            withPath,
-            withRotation: null, // TODO: experiment with delegation @html
-            withMode: null,
-          },
-        },
-      },
-    );
+    this.state.blobs[withId] = {
+      withTransform,
+      withPath,
+      withRotation: null,
+      withMode: null,
+    };
+    this.setState({});
   }
   __updateBlob(withId, withTransform, withRotation, withPath, withMode) {
     const { blobs } = this.state;
-    this.setState(
-      {
-        blobs: {
-          ...blobs,
-          [withId]: {
-            withTransform,
-            withRotation,
-            withPath,
-            withMode,
-          },
-        },
-      },
-    );
+    this.state.blobs[withId] = {
+      withTransform,
+      withRotation,
+      withPath,
+      withMode,
+    };
+    this.setState({});
   }
   __deleteBlob(withId) {
     const { blobs } = this.state;
-    this.setState(
-      {
-        blobs: Object.entries(blobs)
-          .reduce(
-            (obj, [key, value]) => {
-              if (key !== withId) {
-                return {
-                  ...obj,
-                  [key]: value,
-                };
-              }
-              return obj;
-            },
-            {},
-          ),
-      },
-    );
+    delete blobs[withId];
+    this.forceUpdate();
   }
   render() {
     const {
@@ -213,7 +208,6 @@ BlobularView.defaultProps = {
     return (
       <Path
         key={withId}
-        ref={withId}
         d={withPath}
         fill="red"
         stroke="blue"
