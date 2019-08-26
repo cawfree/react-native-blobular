@@ -26,9 +26,7 @@ class BlobularView extends React.Component {
     this.__onPanResponderMove = this.__onPanResponderMove.bind(this);
     this.__onPanResponderFinish = this.__onPanResponderFinish.bind(this);
     this.state = {
-      blobs: {
-        // [id], component (with key)
-      },
+      blobs: {},
       blobular: new Blobular(
         {
           createBlob: this.__createBlob,
@@ -79,43 +77,14 @@ class BlobularView extends React.Component {
 
   }
   componentDidMount() {
-    const { width, height } = this.props;
+    const { onBlobular, width, height } = this.props;
     const { blobular } = this.state;
-    blobular
-      .putBlob(
-        new Blob(
-          uuidv4(),
-          100,
-          75,
-          50,
-        ),
-        width * 0.5,
-        height * 0.5,
-      );
-  blobular
-      .putBlob(
-        new Blob(
-          uuidv4(),
-          150,
-          75,
-          50,
-        ),
-        width * 0.25,
-        height * 0.25,
-      );
-blobular
-      .putBlob(
-        new Blob(
-          uuidv4(),
-          150,
-          75,
-          50,
-        ),
-        width * 0.75,
-        height * 0.75,
-      );
+    return onBlobular(
+      blobular,
+    );
   }
   __createBlob(withId, withTransform, withPath) {
+    const { onBlobCreated } = this.props;
     const { blobs } = this.state;
     this.state.blobs[withId] = {
       withTransform,
@@ -123,7 +92,7 @@ blobular
       withRotation: null,
       withMode: null,
     };
-    this.setState({});
+    this.setState({}, () => onBlobCreated(withId));
   }
   __updateBlob(withId, withTransform, withRotation, withPath, withMode) {
     const { blobs } = this.state;
@@ -136,15 +105,17 @@ blobular
     this.setState({});
   }
   __deleteBlob(withId) {
+    const { onBlobDeleted } = this.props;
     const { blobs } = this.state;
     delete blobs[withId];
-    this.forceUpdate();
+    this.setState({}, () => onBlobDeleted(withId));
   }
   render() {
     const {
       width,
       height,
       renderBlob,
+      pointerEvents,
       ...extraProps
     } = this.props;
     const {
@@ -153,6 +124,7 @@ blobular
     } = this.state;
     return (
       <View
+        pointerEvents={pointerEvents}
         {...panResponder.panHandlers}
         style={{
           width,
@@ -186,9 +158,17 @@ BlobularView.propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   renderBlob: PropTypes.func,
+  pointerEvents: PropTypes.string,
+  onBlobular: PropTypes.func,
+  onBlobCreated: PropTypes.func,
+  onBlobDeleted: PropTypes.func,
 };
 
 BlobularView.defaultProps = {
+  onBlobular: blobular => null,
+  onBlobCreated: blobId => null,
+  onBlobDeleted: blobId => null,
+  pointerEvents: 'auto',
   width: screenWidth,
   height: screenHeight,
   renderBlob: (withId, withTransform, withRotation, withPath, withMode) => {
@@ -209,8 +189,10 @@ BlobularView.defaultProps = {
       <Path
         key={withId}
         d={withPath}
-        fill="red"
-        stroke="blue"
+        fill="green"
+        fillOpacity="0.5"
+        stroke="green"
+        strokeOpacity="0.8"
         {...extraProps}
       />
     );

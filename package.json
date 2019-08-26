@@ -2,5 +2,23 @@
   "dependencies": {
     "react-native-svg": "^9.6.4",
     "uuid": "^3.3.3"
-  }
+  },
+  "keywords": [
+    "react",
+    "react-native",
+    "goo",
+    "blob",
+    "slime",
+    "blobular",
+    "flow",
+    "fluid"
+  ],
+  "name": "react-native-blobular",
+  "version": "0.0.1",
+  "description": "The Man in Blue's awesome Blobular, translated to React Native.",
+  "main": "index.js",
+  "repository": "https://github.com/cawfree/react-native-blobular",
+  "author": "Alex Thomas (@cawfree) <hello@cawfree.com>",
+  "license": "MIT",
+  "private": false
 }
