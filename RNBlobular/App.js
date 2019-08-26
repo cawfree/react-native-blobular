@@ -1,12 +1,11 @@
 import React from 'react';
 
-import Blobular from './components/Blobular';
+import BlobularView from './components/BlobularView';
 
 class App extends React.Component {
   render() {
     return (
-      <Blobular
-        
+      <BlobularView
       />
     );
   }

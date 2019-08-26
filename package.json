@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "react-native-svg": "^9.6.4"
+    "react-native-svg": "^9.6.4",
+    "uuid": "^3.3.3"
   }
 }

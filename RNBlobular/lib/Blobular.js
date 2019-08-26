@@ -1,3 +1,5 @@
+const uuidv4 = require('uuid/v4');
+
 const EVENT_TYPE_DRAG = 'event_drag';
 const EVENT_TYPE_SEPARATE = 'event_separate';
 const EVENT_TYPE_JOIN = 'event_join';
@@ -435,7 +437,7 @@ class Blobular {
     );
 	if (distance > activeContext.bigCircleR + activeContext.joinCircleR * 2 + activeContext.smallCircleR) {
       const detached = new Blob(
-        `detached-${Math.random()}`,
+        uuidv4(),
         activeContext.smallCircleR,
         activeBlob.getViscosity(),
         activeBlob.getSmallestRadius(),
@@ -494,7 +496,7 @@ class Blobular {
     );
     if (distance > context.bigCircleRMin + context.smallCircleR) {
       const detached = new Blob(
-        `join-detach-${Math.random()}`,
+        uuidv4(),
         context.smallCircleR,
         blob.getViscosity(),
         blob.getSmallestRadius(),
@@ -565,7 +567,7 @@ class Blobular {
 
 	if (distance > context.bigCircleRMin + context.smallCircleR) {
       const detached = new Blob(
-        `detached-join-alt-${Math.random()}`,
+        uuidv4(),
         context.smallCircleR,
         blob.getViscosity(),
         blob.getSmallestRadius(),
@@ -958,3 +960,9 @@ class Blobular {
     return this.eventListeners;
   }
 }
+
+module.exports = {
+  default: Blobular,
+  Blobular,
+  Blob,
+};
