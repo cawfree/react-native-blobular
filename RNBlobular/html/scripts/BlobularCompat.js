@@ -150,10 +150,9 @@ class BlobularCompat {
     );
   }
   calculateAngle(origin, point) {
-  const angle = Math.atan((point[1] - origin[1]) / (point[0] - origin[0])) / Math.PI * 180 + 90;
-  return angle + ((point[0] < origin[0]) ? 180 : 0);
-}
-  // drawSomething
+    const angle = Math.atan((point[1] - origin[1]) / (point[0] - origin[0])) / Math.PI * 180 + 90;
+    return angle + ((point[0] < origin[0]) ? 180 : 0);
+  }
   render(blob, distance, angle, mode) { // join, separation
     const context = this.__getContext()[blob.getId()];
     const {
@@ -787,11 +786,28 @@ class BlobularCompat {
     const increment = 20;
 	const newK = context.smallCircleK + increment;
     if (newK > -context.bigCircleR + context.smallCircleR - 1) {
-      context.bigCircleR = context.bigCircleRMax;
-      this.__doReset(blob);
+      const { bigCircleRMax } = context;
+      Object.assign(
+        context,
+        {
+          bigCircleR: bigCircleRMax,
+        },
+      );
+      this.__doReset(
+        blob,
+      );
     } else {
       const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
-      const angle = this.calculateAngle([context.bigCircleH, context.bigCircleK], [x, y]);
+      const angle = this.calculateAngle(
+        [
+          context.bigCircleH,
+          context.bigCircleK,
+        ],
+        [
+          x,
+          y,
+        ],
+      );
       this.render(
         blob,
         distance,
@@ -809,13 +825,28 @@ class BlobularCompat {
     const increment = blob.getViscosity() / 4;
 	const newK = context.smallCircleK + increment;
     if (newK > -context.bigCircleR + context.smallCircleR - 1) {
-	  context.bigCircleR = context.bigCircleRMax;
+      const { bigCircleRMax } = context;
+      Object.assign(
+        context,
+        {
+          bigCircleR: bigCircleRMax,
+        },
+      );
       this.__doReset(
         blob,
       );
 	} else {
 	  const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
-	  const angle = this.calculateAngle([context.bigCircleH, context.bigCircleK], [x, y]);
+	  const angle = this.calculateAngle(
+        [
+          context.bigCircleH,
+          context.bigCircleK,
+        ],
+        [
+          x,
+          y,
+        ],
+      );
       this.render(
         blob,
         distance,
