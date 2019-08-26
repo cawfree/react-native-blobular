@@ -2,7 +2,7 @@
 The [Man in Blue](https://www.themaninblue.com)'s awesome Blobular, ported to React Native.
 
 <p align="center">
-  <img src="./bin/out.gif" width="540" height="316">
+  <img src="./bin/out.gif" width="300" height="633">
 </p>
 
 You can find the original experiment [here](https://www.themaninblue.com/experiment/Blobular/)!
