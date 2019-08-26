@@ -1,3 +1,12 @@
+// ,-----.  ,--.       ,--.           ,--.                
+// |  |) /_ |  | ,---. |  |-. ,--.,--.|  | ,--,--.,--.--. 
+// |  .-.  \|  || .-. || .-. '|  ||  ||  |' ,-.  ||  .--' 
+// |  '--' /|  |' '-' '| `-' |'  ''  '|  |\ '-'  ||  |    
+// `------' `--' `---'  `---'  `----' `--' `--`--'`--'    
+
+// Created by Cameron Adams, 2007. @themaninblue <https://themaninblue.com>
+// Nodified by Alex Thomas, 2019. @cawfree <https://cawfree.com>
+
 const uuidv4 = require('uuid/v4');
 
 const EVENT_TYPE_DRAG = 'event_drag';
