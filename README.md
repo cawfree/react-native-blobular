@@ -56,15 +56,15 @@ You can also suppress user interaction by supplying `pointerEvents="none"` to yo
 
 ## 📌 Props
 
-Property | Type | Required | Default value | Description
-:--- | :--- | :--- | :--- | :---
-width|number|no|Width of the view.|
-height|number|no|Height of the view.|
-renderBlob|func|no|A function you can pass to define the SVG path.|
-pointerEvents|string|no|&lt;See the source code&gt;|
-onBlobular|func|no|&lt;See the source code&gt;|
-onBlobCreated|func|no|&lt;See the source code&gt;|
-onBlobDeleted|func|no|&lt;See the source code&gt;|
+Property | Type | Required | Description
+:--- | :--- | :--- | :--- 
+width|number|no|Width of the view.
+height|number|no|Height of the view.
+renderBlob|func|no|A function you can pass to define the SVG path.
+pointerEvents|string|no|Allow the user to interact, or manipulate programmatically.
+onBlobular|func|no|A callback returning you with a `blobular` instance.
+onBlobCreated|func|no|A callback for when a new blob has been generated.
+onBlobDeleted|func|no|A callback for when an existing blob has been removed.
 -----
 
 
