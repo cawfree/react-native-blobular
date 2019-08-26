@@ -748,25 +748,85 @@ class BlobularCompat {
     );
   }
   __onPointerUpSeparate(x, y, blob) {
-    console.log('should collapse');
+    this.__collapse(
+      x,
+      y,
+      blob,
+    );
     this.__removeEventListener(
       EVENT_TYPE_SEPARATE,
       blob,
     );
   }
   __onPointerUpJoin(x, y, blob) {
-    console.log('should join');
+    this.__join(
+      x,
+      y,
+      blob,
+    );
     this.__removeEventListener(
       EVENT_TYPE_JOIN,
       blob,
     );
   }
   __onPointerUpJoinAlt(x, y, blob) {
-    console.log('should join small');
+    const context = this.__getContext()[blob.getId()];
+    this.__join(
+      context.smallCircleOriginH,
+      context.smallCircleOriginK,
+      blob,
+    );
     this.__removeEventListener(
       EVENT_TYPE_JOIN_ALT,
       blob,
     );
+  }
+  // TODO: provide the callback with an iterator
+  __join(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const increment = 20;
+	const newK = context.smallCircleK + increment;
+    if (newK > -context.bigCircleR + context.smallCircleR - 1) {
+      context.bigCircleR = context.bigCircleRMax;
+      this.__doReset(blob);
+    } else {
+      const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
+      const angle = this.calculateAngle([context.bigCircleH, context.bigCircleK], [x, y]);
+      this.render(
+        blob,
+        distance,
+        angle,
+        'join',
+      );
+      setTimeout(
+        () => this.__join(x, y, blob),
+        10,
+      );
+    }
+  }
+  __collapse(x, y, blob) {
+    const context = this.__getContext()[blob.getId()];
+    const increment = blob.getViscosity() / 4;
+	const newK = context.smallCircleK + increment;
+    if (newK > -context.bigCircleR + context.smallCircleR - 1) {
+	  context.bigCircleR = context.bigCircleRMax;
+      this.__doReset(
+        blob,
+      );
+	} else {
+	  const distance = -newK - (context.bigCircleRMax - context.smallCircleR);
+	  const angle = this.calculateAngle([context.bigCircleH, context.bigCircleK], [x, y]);
+      this.render(
+        blob,
+        distance,
+        angle,
+        'separation',
+      );
+      setTimeout(
+        () => this.__collapse(x, y, blob),
+        10,
+      );
+	}
   }
   onPointerUp(x, y) {
     this.x = x;
@@ -786,9 +846,7 @@ class BlobularCompat {
       );
     (eventListeners[EVENT_TYPE_JOIN_ALT] || [])
       .map(
-        (blob) => {
-          console.log('join alt up');
-        },
+        blob => this.__onPointerUpJoinAlt(x, y, blob),
       );
 
   }
