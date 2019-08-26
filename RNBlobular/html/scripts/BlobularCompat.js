@@ -796,7 +796,7 @@ class BlobularCompat {
         blob,
         distance,
         angle,
-        'separation',//'join', (think this looks a little better)
+        'join',
       );
       setTimeout(
         () => this.__join(x, y, blob),
