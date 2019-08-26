@@ -354,24 +354,6 @@ class BlobularCompat {
         const afterCircleArea = bigCircleArea + smallCircleArea;
         // XXX: Why is this hack required? (*2)
         if (bigCircleR < otherContext.bigCircleR) {
-
-          //objRef.bigCircleRMin = objRef.bigCircleR;
-						//objRef.bigCircleRMax = Math.sqrt(afterCircleArea / Math.PI);
-						//objRef.smallCircleR = self.bigCircleR;
-						//objRef.smallCircleOriginH = self.bigCircleOriginH;
-						//objRef.smallCircleOriginK = self.bigCircleOriginK;
-						//objRef.mousedownCoords = self.mousedownCoords;
-
-						//var distanceDiff = distance - objRef.bigCircleRMax + objRef.smallCircleR;
-
-						//if (distanceDiff < 1)
-						//{
-						//	distanceDiff = 1;
-						//}
-
-						//objRef.drawJoin(distanceDiff, calculateAngle([objRef.bigCircleH, objRef.bigCircleK],[self.bigCircleH, self.bigCircleK]));
-
-
           Object.assign(
             otherContext,
             {
@@ -382,13 +364,7 @@ class BlobularCompat {
               smallCircleR: activeContext.bigCircleR,
               smallCircleOriginH: activeContext.bigCircleOriginH,
               smallCircleOriginK: activeContext.bigCircleOriginK,
-              pointerCoords: [
-                ...activeContext.pointerCoords,
-              ],
-              // XXX: this is close too...
-              //pointerCoords: [
-              //  ...otherContext.pointerCoords,
-              //],
+              pointerCoords,
             },
           );
 	      const distanceDiff = Math.max(
@@ -414,11 +390,6 @@ class BlobularCompat {
             EVENT_TYPE_JOIN, // TODO needs to exist
             otherBlob,
           );
-          // implicit in delete (below)
-          //this.__removeEventListener(
-          //  EVENT_TYPE_DRAG,
-          //  activeBlob,
-          //);
         } else {
           Object.assign(
             otherContext,
@@ -435,7 +406,7 @@ class BlobularCompat {
               bigCircleK: activeContext.bigCircleK,
               bigCircleOriginH: activeContext.bigCircleOriginH,
               bigCircleOriginK: activeContext.bigCircleOriginK,
-              pointerCoords: [...activeContext.pointerCoords],
+              pointerCoords,
             },
           );
 
@@ -595,7 +566,7 @@ class BlobularCompat {
             context.smallCircleOriginK + y - context.pointerCoords[1],
           ],
         ),
-        'separation', // TODO: verify this
+        'join',
       );
     }
   }
