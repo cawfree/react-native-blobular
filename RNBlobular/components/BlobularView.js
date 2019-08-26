@@ -53,7 +53,7 @@ class BlobularView extends React.Component {
   __onPanResponderGrant(e, gestureState) {
     const { locationX, locationY } = e.nativeEvent;
     const { blobular } = this.state;
-    return blobular
+    blobular
       .onPointerDown(
         locationX,
         locationY,
@@ -213,8 +213,10 @@ BlobularView.defaultProps = {
     return (
       <Path
         key={withId}
+        ref={withId}
         d={withPath}
-        strokeWidth="32"
+        fill="red"
+        stroke="blue"
         {...extraProps}
       />
     );
