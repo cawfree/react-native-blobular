@@ -788,7 +788,7 @@ class Blobular {
       );
       setTimeout(
         () => this.__join(x, y, blob),
-        10,
+        1,
       );
     }
   }
@@ -827,7 +827,7 @@ class Blobular {
       );
       setTimeout(
         () => this.__collapse(x, y, blob),
-        10,
+        1,
       );
 	}
   }
