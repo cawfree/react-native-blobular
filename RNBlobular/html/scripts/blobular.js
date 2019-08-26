@@ -33,15 +33,11 @@ class Blobular {
     this.onPointerDown = this.onPointerDown.bind(this);
     this.putBlob = this.putBlob.bind(this);
     this.callback = callback;
-    this.x = 0;
-    this.y = 0;
     this.blobs = [];
     this.context = {};
     this.eventListeners = {};
   }
   onPointerDown(x, y) {
-    this.x = x;
-    this.y = y;
     const blob = this.__getBlobs()
       .map((e, i, arr) => (arr[arr.length - 1 - i]))
       .reduce(
@@ -619,8 +615,6 @@ class Blobular {
     }
   }
   onPointerMoved(x, y) {
-    this.x = x;
-    this.y = y;
     const eventListeners = this.__getEventListeners();
     (eventListeners[EVENT_TYPE_DRAG] || [])
       .map(
@@ -835,8 +829,6 @@ class Blobular {
 	}
   }
   onPointerUp(x, y) {
-    this.x = x;
-    this.y = y;
     const eventListeners = this.__getEventListeners();
     (eventListeners[EVENT_TYPE_DRAG] || [])
       .map(
