@@ -25,7 +25,6 @@ window.addEventListener(
                 'class',
                 'blob joining',
               );
-          } else if (withMode === 'separation') {
           }
           path
             .setAttributeNS(
