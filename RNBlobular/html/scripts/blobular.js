@@ -4,11 +4,9 @@ const EVENT_TYPE_JOIN = 'event_join';
 const EVENT_TYPE_JOIN_ALT = 'event_joinAlt';
 
 class Blob {
-  constructor(id, radius, x, y, viscosity, smallestRadius) {
+  constructor(id, radius, viscosity, smallestRadius) {
     this.id = id;
     this.radius = radius;
-    this.x = x;
-    this.y = y;
     this.viscosity = viscosity;
     this.smallestRadius = smallestRadius;
   }
@@ -17,12 +15,6 @@ class Blob {
   }
   getRadius() {
     return this.radius;
-  }
-  getX() {
-    return this.x;
-  }
-  getY() {
-    return this.y;
   }
   getViscosity() {
     return this.viscosity;
@@ -449,13 +441,13 @@ class Blobular {
       const detached = new Blob(
         `detached-${Math.random()}`,
         activeContext.smallCircleR,
-        x,
-        y,
         activeBlob.getViscosity(),
         activeBlob.getSmallestRadius(),
       );
       this.putBlob(
         detached,
+        x,
+        y,
       );
       this.__addEventListener(
         EVENT_TYPE_DRAG,
@@ -508,13 +500,13 @@ class Blobular {
       const detached = new Blob(
         `join-detach-${Math.random()}`,
         context.smallCircleR,
-        x,
-        y,
         blob.getViscosity(),
         blob.getSmallestRadius(),
       );
       this.putBlob(
         detached,
+        x,
+        y,
       );
       this.__addEventListener(
         EVENT_TYPE_DRAG,
@@ -579,13 +571,13 @@ class Blobular {
       const detached = new Blob(
         `detached-join-alt-${Math.random()}`,
         context.smallCircleR,
-        context.smallCircleOriginH,
-        context.smallCircleOriginK,
         blob.getViscosity(),
         blob.getSmallestRadius(),
       );
       this.putBlob(
         detached,
+        context.smallCircleOriginH,
+        context.smallCircleOriginK,
       );
       this.__addEventListener(
         EVENT_TYPE_DRAG,
@@ -864,7 +856,7 @@ class Blobular {
       );
 
   }
-  putBlob(blob) {
+  putBlob(blob, x, y) {
     const id = blob
       .getId();
     if (typeof id !== 'string') {
@@ -888,6 +880,8 @@ class Blobular {
       );
       const blobContext = this.__createBlobContext(
         blob,
+        x,
+        y,
       );
       this.__setContext(
         {
@@ -919,20 +913,20 @@ class Blobular {
   __getBlobs() {
     return this.blobs;
   }
-  __createBlobContext(blob) {
+  __createBlobContext(blob, x, y) {
     return {
       bigCircleR: blob.getRadius(),
-      bigCircleH: blob.getX(),
-      bigCircleK: blob.getY(),
-      bigCircleOriginH: blob.getX(),
-      bigCircleOriginK: blob.getY(),
+      bigCircleH: x,
+      bigCircleK: y,
+      bigCircleOriginH: x,
+      bigCircleOriginK: y,
       joinCircleR: blob.getViscosity(),
       smallCircleR: blob.getSmallestRadius(),
       smallCircleH: 0,
       smallCircleK: - blob.getRadius() + blob.getSmallestRadius() - 1,
       pointerCoords: [
-        blob.getX(),
-        blob.getY(),
+        x,
+        y,
       ],
     };
   }

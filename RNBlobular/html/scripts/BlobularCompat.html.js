@@ -75,12 +75,13 @@ window.addEventListener(
       new Blob(
         'custom-blob-id',
         200,
-        400,
-        300,
         75,
         50,
       ),
+      400,
+      300,
     );
+
     svg.addEventListener(
       'mousedown',
       (e) => {
