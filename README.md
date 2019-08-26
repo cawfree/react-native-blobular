@@ -21,6 +21,8 @@ Using [`yarn`]():
 yarn add react-native-blobular
 ```
 
+This project depends on [react-native-svg](https://github.com/react-native-community/react-native-svg), so be sure that the library has been [linked](https://github.com/react-native-community/react-native-svg#installation) if you're running anything less than [react-native@0.60](https://facebook.github.io/react-native/blog/2019/07/03/version-60).
+
 ## ✍️ Example
 It's pretty simple, just embed a `<Blobular />` inside your `render` method, then listen for the `onBlobular` callback, where you can allocate a number of `Blob`s for your user to play around with.
 
@@ -53,6 +55,18 @@ export default () => (
 You can also suppress user interaction by supplying `pointerEvents="none"` to your `<Blobular />` component, and instead use the `blobular` instance returned in the callback to programmatically manipulate what's on screen.
 
 ## 📌 Props
+
+Property | Type | Required | Default value | Description
+:--- | :--- | :--- | :--- | :---
+width|number|no|Width of the view.|
+height|number|no|Height of the view.|
+renderBlob|func|no|A function you can pass to define the SVG path.|
+pointerEvents|string|no|&lt;See the source code&gt;|
+onBlobular|func|no|&lt;See the source code&gt;|
+onBlobCreated|func|no|&lt;See the source code&gt;|
+onBlobDeleted|func|no|&lt;See the source code&gt;|
+-----
+
 
 
 ## ✌️ License
