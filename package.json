@@ -14,7 +14,7 @@
     "fluid"
   ],
   "name": "react-native-blobular",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The Man in Blue's awesome Blobular, translated to React Native.",
   "main": "index.js",
   "repository": "https://github.com/cawfree/react-native-blobular",
